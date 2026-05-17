@@ -1,0 +1,29 @@
+{
+  "id": "timeline-notes",
+  "title": "Timeline Notes",
+  "description": "A Foundry VTT V14 sidebar timeline for dated campaign notes.",
+  "version": "0.1.0",
+  "compatibility": {
+    "minimum": "14",
+    "verified": "14"
+  },
+  "authors": [
+    {
+      "name": "Neph"
+    }
+  ],
+  "esmodules": [
+    "scripts/timeline-notes.mjs"
+  ],
+  "styles": [
+    "styles/timeline-notes.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ]
+}
+
