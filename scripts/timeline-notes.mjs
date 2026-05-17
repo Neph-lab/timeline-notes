@@ -2,6 +2,8 @@ import { MODULE_ID } from "./constants.mjs";
 import { CalendarService } from "./services/calendar-service.mjs";
 import { TimelineNoteStore } from "./services/note-store.mjs";
 import { TimelineNotePermissions } from "./services/permissions.mjs";
+import { registerTimelineSidebarTab, TimelineSidebarTab } from "./applications/timeline-sidebar-tab.mjs";
+import { TimelineNoteWindow } from "./applications/timeline-note-window.mjs";
 import { installDocumentRegistrationSpike } from "./spikes/document-registration-spike.mjs";
 
 Hooks.once("init", () => {
@@ -9,6 +11,7 @@ Hooks.once("init", () => {
   CalendarService.registerSettings();
   TimelineNoteStore.registerSettings();
   installDocumentRegistrationSpike();
+  registerTimelineSidebarTab();
 });
 
 Hooks.once("ready", () => {
@@ -16,7 +19,9 @@ Hooks.once("ready", () => {
     ...(globalThis.timelineNotes ?? {}),
     CalendarService,
     TimelineNotePermissions,
-    TimelineNoteStore
+    TimelineNoteStore,
+    TimelineNoteWindow,
+    TimelineSidebarTab
   };
 
   if (!game.user?.isGM) return;

@@ -66,3 +66,7 @@ timelineNotes.TimelineNoteStore.list();
 await timelineNotes.TimelineNoteStore.update(note.id, { visibility: "view" });
 await timelineNotes.TimelineNoteStore.delete(note.id);
 ```
+
+## Sidebar Smoke Test
+
+Version `0.1.4` registers an initial V14 `AbstractSidebarTab` named `timelineNotes`. After updating the module, the sidebar should include a Timeline tab with create, filter, sort, view, edit, and delete controls backed by the temporary development note store.

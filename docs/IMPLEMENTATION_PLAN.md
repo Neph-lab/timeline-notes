@@ -72,6 +72,8 @@ Initial implementation note: version `0.1.2` registers hidden world settings for
 
 Development storage note: version `0.1.3` adds `TimelineNoteStore`, a setting-backed temporary adapter. This lets timeline filtering, sorting, summaries, and permission UI move forward while the final V14 document persistence path is still being validated. It is not the final storage model because settings cannot enforce the same server-side permissions as documents.
 
+Sidebar implementation note: version `0.1.4` registers an initial `AbstractSidebarTab` backed by `TimelineNoteStore`. This validates the V14 sidebar integration and interaction model before the final document persistence layer is settled.
+
 ## Permission Model
 
 - GMs can view, update, and delete all notes.
