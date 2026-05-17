@@ -18,3 +18,26 @@ This repository is initialized with the initial V14 scope and implementation pla
 
 See [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md).
 
+## V14 Document Registration Spike
+
+The module currently includes a disabled-by-default spike to test whether Foundry VTT V14 will accept a module-owned primary `TimelineNote` document.
+
+In a V14 test world, enable the module, sign in as a GM, open the browser console, and run:
+
+```js
+await timelineNotes.runDocumentRegistrationSpike()
+```
+
+If the dry run succeeds, test client-side registration:
+
+```js
+await timelineNotes.runDocumentRegistrationSpike({ mutate: true })
+```
+
+To attempt a real create/update through Foundry's document database API:
+
+```js
+await timelineNotes.runDocumentRegistrationSpike({ mutate: true, create: true })
+```
+
+For a reload-time persistence test, enable the world setting **Enable primary TimelineNote document spike**, reload the world, then run the create test again. Use a disposable test world because this intentionally probes unsupported primary document registration behavior.

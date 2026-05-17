@@ -101,11 +101,21 @@ The default adapter is simplified Gregorian using Foundry world time as the sour
 ### Phase 0: Repository and V14 Spike
 
 - Initialize module manifest and repository.
-- Prove whether V14 allows a module to register a new primary world document type named `TimelineNote`.
+- Add a disabled-by-default runtime spike for whether V14 allows a module to register a new primary world document type named `TimelineNote`.
 - Verify create, update, delete, socket sync, permission checks, and reload persistence for that document.
 - If V14 does not support module-owned primary documents cleanly, document the blocker and decide whether to escalate to a subtype-based fallback or a module-maintained world setting store.
 
 Exit criteria: a minimal `TimelineNote.create(...)` flow persists and reloads correctly in V14, or the blocker is documented with a recommended alternative.
+
+Current test commands after installing the module in a V14 test world:
+
+```js
+await timelineNotes.runDocumentRegistrationSpike()
+await timelineNotes.runDocumentRegistrationSpike({ mutate: true })
+await timelineNotes.runDocumentRegistrationSpike({ mutate: true, create: true })
+```
+
+The reload persistence test requires enabling the world setting `Enable primary TimelineNote document spike`, reloading the world, and then re-running the create test.
 
 ### Phase 1: Data and Permissions
 
@@ -152,4 +162,3 @@ Exit criteria: module is usable in a V14 world and packaged for manual installat
 - Which non-Gregorian calendar modules or systems should be first-class integrations.
 - Whether player-editable shared notes need optimistic locking or explicit last-save conflict handling.
 - Whether end dates should display multi-day notes in every covered year/month/day group or only at their start date.
-

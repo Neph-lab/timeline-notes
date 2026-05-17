@@ -1,3 +1,7 @@
 {
-  "TIMELINE_NOTES.ModuleTitle": "Timeline Notes"
+  "TIMELINE_NOTES.ModuleTitle": "Timeline Notes",
+  "TIMELINE_NOTES.Document.TimelineNote": "Timeline Note",
+  "TIMELINE_NOTES.Document.TimelineNotes": "Timeline Notes",
+  "TIMELINE_NOTES.Settings.EnablePrimaryDocumentSpike.Name": "Enable primary TimelineNote document spike",
+  "TIMELINE_NOTES.Settings.EnablePrimaryDocumentSpike.Hint": "Registers the experimental TimelineNote document candidate during init. Enable only in a test world, then reload Foundry before running the create test."
 }
