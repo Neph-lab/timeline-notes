@@ -139,7 +139,7 @@ export class TimelineSidebarTab extends foundry.applications.sidebar.AbstractSid
 
   static DEFAULT_OPTIONS = {
     id: "timeline-notes-sidebar",
-    classes: ["timeline-notes", "timeline-notes-sidebar"],
+    classes: ["sidebar-tab", "timeline-notes", "timeline-notes-sidebar"],
     tag: "section",
     window: {
       frame: false,
@@ -188,11 +188,24 @@ export class TimelineSidebarTab extends foundry.applications.sidebar.AbstractSid
         ${notes.length ? renderTimelineGroups(groups) : `<p class="timeline-notes-empty">${game.i18n.localize("TIMELINE_NOTES.EmptyTimeline")}</p>`}
       </main>
     `;
+
+    console.debug(`${MODULE_ID} | Rendered timeline sidebar`, {
+      notes: notes.length,
+      groups: groups.length,
+      direction: this.direction,
+      query: this.query
+    });
+
     return element;
   }
 
-  _replaceHTML(result, content) {
-    content.replaceChildren(result);
+  _replaceHTML(result, content, options) {
+    if (content instanceof HTMLElement) {
+      content.replaceChildren(result);
+      return;
+    }
+
+    super._replaceHTML(result, content, options);
   }
 
   async _onRender(context, options) {

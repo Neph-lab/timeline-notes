@@ -7,7 +7,7 @@
   flex-direction: column;
   gap: var(--timeline-notes-gap);
   height: 100%;
-  min-height: 0;
+  min-height: 12rem;
 }
 
 .timeline-notes-toolbar {
