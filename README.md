@@ -41,3 +41,11 @@ await timelineNotes.runDocumentRegistrationSpike({ mutate: true, create: true })
 ```
 
 For a reload-time persistence test, enable the world setting **Enable primary TimelineNote document spike**, reload the world, then run the create test again. Use a disposable test world because this intentionally probes unsupported primary document registration behavior.
+
+## Calendar Service Smoke Test
+
+Version `0.1.2` includes the hidden campaign date/time settings used by future note defaults. In a V14 world console, this should return the current stored campaign date and time:
+
+```js
+timelineNotes.CalendarService.getCurrentDateTime()
+```

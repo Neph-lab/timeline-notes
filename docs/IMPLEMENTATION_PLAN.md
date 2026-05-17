@@ -68,6 +68,8 @@ Campaign time setting fields:
 - `currentTime`: structured time object.
 - `calendarId`: string, default `gregorian`.
 
+Initial implementation note: version `0.1.2` registers hidden world settings for these fields and exposes `timelineNotes.CalendarService` for testing. The GM-facing date/time dialog will build on this service instead of writing settings directly.
+
 ## Permission Model
 
 - GMs can view, update, and delete all notes.

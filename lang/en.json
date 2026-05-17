@@ -2,6 +2,12 @@
   "TIMELINE_NOTES.ModuleTitle": "Timeline Notes",
   "TIMELINE_NOTES.Document.TimelineNote": "Timeline Note",
   "TIMELINE_NOTES.Document.TimelineNotes": "Timeline Notes",
+  "TIMELINE_NOTES.Settings.CampaignCalendarId.Name": "Campaign calendar",
+  "TIMELINE_NOTES.Settings.CampaignCalendarId.Hint": "The calendar adapter used by Timeline Notes. The default is simplified Gregorian.",
+  "TIMELINE_NOTES.Settings.CampaignCurrentDate.Name": "Campaign current date",
+  "TIMELINE_NOTES.Settings.CampaignCurrentDate.Hint": "The campaign date used as the default start date for new timeline notes.",
+  "TIMELINE_NOTES.Settings.CampaignCurrentTime.Name": "Campaign current time",
+  "TIMELINE_NOTES.Settings.CampaignCurrentTime.Hint": "The campaign time used as the default start time for new timeline notes.",
   "TIMELINE_NOTES.Settings.EnablePrimaryDocumentSpike.Name": "Enable primary TimelineNote document spike",
   "TIMELINE_NOTES.Settings.EnablePrimaryDocumentSpike.Hint": "Registers the experimental TimelineNote document candidate during init. Enable only in a test world, then reload Foundry before running the create test."
 }
