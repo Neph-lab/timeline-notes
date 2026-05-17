@@ -70,3 +70,9 @@ await timelineNotes.TimelineNoteStore.delete(note.id);
 ## Sidebar Smoke Test
 
 Version `0.1.4` registers an initial V14 `AbstractSidebarTab` named `timelineNotes`. After updating the module, the sidebar should include a Timeline tab with create, filter, sort, view, edit, and delete controls backed by the temporary development note store.
+
+Version `0.1.6` adds a fallback mount for the inert V14 sidebar part template observed during testing. If the tab icon exists but content is blank, run this in the console to retry the mount:
+
+```js
+await timelineNotes.mountTimelineSidebarFallback()
+```

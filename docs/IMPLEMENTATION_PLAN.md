@@ -74,6 +74,8 @@ Development storage note: version `0.1.3` adds `TimelineNoteStore`, a setting-ba
 
 Sidebar implementation note: version `0.1.4` registers an initial `AbstractSidebarTab` backed by `TimelineNoteStore`. This validates the V14 sidebar integration and interaction model before the final document persistence layer is settled.
 
+V14 sidebar observation: Foundry creates an inert `<template id="timelineNotes" data-application-part="timelineNotes">` for the custom tab, but does not instantiate the child `AbstractSidebarTab` in the first attempt. Version `0.1.6` adds a fallback mount that replaces that template with the rendered tab content after the sidebar renders.
+
 ## Permission Model
 
 - GMs can view, update, and delete all notes.

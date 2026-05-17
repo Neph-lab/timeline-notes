@@ -2,7 +2,7 @@ import { MODULE_ID } from "./constants.mjs";
 import { CalendarService } from "./services/calendar-service.mjs";
 import { TimelineNoteStore } from "./services/note-store.mjs";
 import { TimelineNotePermissions } from "./services/permissions.mjs";
-import { registerTimelineSidebarTab, TimelineSidebarTab } from "./applications/timeline-sidebar-tab.mjs";
+import { mountTimelineSidebarFallback, registerTimelineSidebarTab, TimelineSidebarTab } from "./applications/timeline-sidebar-tab.mjs";
 import { TimelineNoteWindow } from "./applications/timeline-note-window.mjs";
 import { installDocumentRegistrationSpike } from "./spikes/document-registration-spike.mjs";
 
@@ -21,7 +21,8 @@ Hooks.once("ready", () => {
     TimelineNotePermissions,
     TimelineNoteStore,
     TimelineNoteWindow,
-    TimelineSidebarTab
+    TimelineSidebarTab,
+    mountTimelineSidebarFallback
   };
 
   if (!game.user?.isGM) return;

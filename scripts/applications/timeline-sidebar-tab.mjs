@@ -5,6 +5,7 @@ import { TimelineNoteStore } from "../services/note-store.mjs";
 import { TimelineNoteWindow } from "./timeline-note-window.mjs";
 
 const SIDEBAR_TAB_ID = "timelineNotes";
+let fallbackSidebarTab = null;
 
 function escapeHTML(value) {
   const element = document.createElement("span");
@@ -210,27 +211,30 @@ export class TimelineSidebarTab extends foundry.applications.sidebar.AbstractSid
 
   async _onRender(context, options) {
     await super._onRender(context, options);
+    this.activateListeners(this.element);
+  }
 
-    this.element.querySelector("[name='query']")?.addEventListener("input", (event) => {
+  activateListeners(root) {
+    root.querySelector("[name='query']")?.addEventListener("input", (event) => {
       this.query = event.currentTarget.value;
-      this.render({ force: true });
+      this.refresh();
     });
 
-    this.element.querySelector("[data-action='toggle-order']")?.addEventListener("click", () => {
+    root.querySelector("[data-action='toggle-order']")?.addEventListener("click", () => {
       this.direction = this.direction === "future" ? "oldest" : "future";
-      this.render({ force: true });
+      this.refresh();
     });
 
-    this.element.querySelector("[data-action='create-note']")?.addEventListener("click", async () => {
+    root.querySelector("[data-action='create-note']")?.addEventListener("click", async () => {
       const note = await TimelineNoteStore.create({
         name: game.i18n.localize("TIMELINE_NOTES.DefaultNoteName"),
         content: "<p></p>"
       });
-      await this.render({ force: true });
+      await this.refresh();
       new TimelineNoteWindow(note.id).render({ force: true });
     });
 
-    this.element.querySelector("[data-action='jump-date']")?.addEventListener("click", async () => {
+    root.querySelector("[data-action='jump-date']")?.addEventListener("click", async () => {
       const current = CalendarService.getCurrentDateTime();
       const result = await foundry.applications.api.DialogV2.prompt({
         window: { title: game.i18n.localize("TIMELINE_NOTES.Action.JumpDate") },
@@ -247,7 +251,7 @@ export class TimelineSidebarTab extends foundry.applications.sidebar.AbstractSid
       if (!result) return;
 
       const targetKey = CalendarService.toSortKey(result);
-      const cards = [...this.element.querySelectorAll("[data-note-id]")];
+      const cards = [...root.querySelectorAll("[data-note-id]")];
       const target = cards.find((card) => {
         const note = TimelineNoteStore.get(card.dataset.noteId);
         if (!note) return false;
@@ -258,7 +262,7 @@ export class TimelineSidebarTab extends foundry.applications.sidebar.AbstractSid
       target?.scrollIntoView({ block: "center", behavior: "smooth" });
     });
 
-    this.element.querySelector("[data-action='set-campaign-time']")?.addEventListener("click", async () => {
+    root.querySelector("[data-action='set-campaign-time']")?.addEventListener("click", async () => {
       const current = CalendarService.getCurrentDateTime();
       const result = await foundry.applications.api.DialogV2.prompt({
         window: { title: game.i18n.localize("TIMELINE_NOTES.Action.SetCampaignTime") },
@@ -276,10 +280,10 @@ export class TimelineSidebarTab extends foundry.applications.sidebar.AbstractSid
       if (!result) return;
 
       await CalendarService.setCurrentDateTime(result);
-      await this.render({ force: true });
+      await this.refresh();
     });
 
-    this.element.querySelectorAll("[data-action='open-note'], [data-action='edit-note']").forEach((button) => {
+    root.querySelectorAll("[data-action='open-note'], [data-action='edit-note']").forEach((button) => {
       button.addEventListener("click", (event) => {
         const noteId = event.currentTarget.dataset.noteId;
         const app = new TimelineNoteWindow(noteId);
@@ -288,7 +292,7 @@ export class TimelineSidebarTab extends foundry.applications.sidebar.AbstractSid
       });
     });
 
-    this.element.querySelectorAll("[data-action='delete-note']").forEach((button) => {
+    root.querySelectorAll("[data-action='delete-note']").forEach((button) => {
       button.addEventListener("click", async (event) => {
         const noteId = event.currentTarget.dataset.noteId;
         const proceed = await foundry.applications.api.DialogV2.confirm({
@@ -300,10 +304,41 @@ export class TimelineSidebarTab extends foundry.applications.sidebar.AbstractSid
         if (!proceed) return;
 
         await TimelineNoteStore.delete(noteId);
-        await this.render({ force: true });
+        await this.refresh();
       });
     });
   }
+
+  async refresh() {
+    if (this.rendered) {
+      await this.render({ force: true });
+      return;
+    }
+
+    await mountTimelineSidebarFallback();
+  }
+}
+
+export async function mountTimelineSidebarFallback(sidebar = ui.sidebar) {
+  const mountPoint = sidebar?.element?.querySelector(
+    `template#${SIDEBAR_TAB_ID}[data-application-part="${SIDEBAR_TAB_ID}"], section#${SIDEBAR_TAB_ID}[data-application-part="${SIDEBAR_TAB_ID}"]`
+  );
+  if (!mountPoint) return false;
+
+  fallbackSidebarTab ??= new TimelineSidebarTab();
+  const content = await fallbackSidebarTab._renderHTML();
+  content.id = SIDEBAR_TAB_ID;
+  content.dataset.applicationPart = SIDEBAR_TAB_ID;
+  content.dataset.group = "primary";
+  content.dataset.tab = SIDEBAR_TAB_ID;
+  content.classList.add("sidebar-tab", "timeline-notes-sidebar");
+  content.classList.toggle("active", sidebar?.tabGroups?.primary === SIDEBAR_TAB_ID);
+
+  mountPoint.replaceWith(content);
+  fallbackSidebarTab.activateListeners(content);
+
+  console.info(`${MODULE_ID} | Mounted timeline sidebar fallback`, { tab: SIDEBAR_TAB_ID });
+  return true;
 }
 
 export function registerTimelineSidebarTab() {
@@ -312,6 +347,10 @@ export function registerTimelineSidebarTab() {
     icon: "fa-solid fa-timeline",
     tooltip: "TIMELINE_NOTES.Sidebar.Title"
   };
+
+  Hooks.on("renderSidebar", (sidebar) => {
+    mountTimelineSidebarFallback(sidebar);
+  });
 
   console.info(`${MODULE_ID} | Registered timeline sidebar tab`, { tab: SIDEBAR_TAB_ID });
 }
