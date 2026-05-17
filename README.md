@@ -40,6 +40,12 @@ To attempt a real create/update through Foundry's document database API:
 await timelineNotes.runDocumentRegistrationSpike({ mutate: true, create: true })
 ```
 
+The create/update probe times out after five seconds by default so a stalled database request returns a report instead of leaving the console command unresolved. To test with a longer timeout:
+
+```js
+await timelineNotes.runDocumentRegistrationSpike({ mutate: true, create: true, timeoutMs: 15000 })
+```
+
 For a reload-time persistence test, enable the world setting **Enable primary TimelineNote document spike**, reload the world, then run the create test again. Use a disposable test world because this intentionally probes unsupported primary document registration behavior.
 
 ## Calendar Service Smoke Test
@@ -48,4 +54,15 @@ Version `0.1.2` includes the hidden campaign date/time settings used by future n
 
 ```js
 timelineNotes.CalendarService.getCurrentDateTime()
+```
+
+## Development Note Store Smoke Test
+
+While the V14 primary document question is being validated, version `0.1.3` includes a temporary setting-backed note store so timeline UI behavior can be developed without blocking on persistence. This is not the final security model because world settings are not a proper replacement for Foundry document permissions.
+
+```js
+const note = await timelineNotes.TimelineNoteStore.create({ name: "Test note", content: "<p>Hello timeline.</p>" });
+timelineNotes.TimelineNoteStore.list();
+await timelineNotes.TimelineNoteStore.update(note.id, { visibility: "view" });
+await timelineNotes.TimelineNoteStore.delete(note.id);
 ```

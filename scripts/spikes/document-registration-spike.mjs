@@ -1,6 +1,7 @@
 import { COLLECTION_NAME, DOCUMENT_NAME, MODULE_ID, SETTINGS } from "../constants.mjs";
 
 const SPIKE_API_NAME = "timelineNotes";
+const DEFAULT_CREATE_TIMEOUT_MS = 5000;
 
 function addCheck(report, name, passed, details = {}) {
   report.checks.push({ name, passed, ...details });
@@ -12,6 +13,19 @@ function summarizeError(error) {
     message: error?.message ?? String(error),
     stack: error?.stack
   };
+}
+
+function withTimeout(promise, timeoutMs, label) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      const error = new Error(`${label} did not settle within ${timeoutMs}ms.`);
+      error.name = "TimeoutError";
+      reject(error);
+    }, timeoutMs);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timeoutId));
 }
 
 function getFoundryVersion() {
@@ -126,8 +140,12 @@ function buildSpikeData() {
   };
 }
 
-async function tryCreateTimelineNote(report, TimelineNote) {
-  const created = await TimelineNote.implementation.create(buildSpikeData(), { render: false });
+async function tryCreateTimelineNote(report, TimelineNote, timeoutMs) {
+  const created = await withTimeout(
+    TimelineNote.implementation.create(buildSpikeData(), { render: false }),
+    timeoutMs,
+    `${DOCUMENT_NAME}.create`
+  );
 
   addCheck(report, "created-document", Boolean(created), {
     id: created?.id ?? null,
@@ -136,9 +154,13 @@ async function tryCreateTimelineNote(report, TimelineNote) {
 
   if (!created) return null;
 
-  const updated = await created.update({
-    content: "<p>Created and updated by the Timeline Notes primary document registration spike.</p>"
-  }, { render: false });
+  const updated = await withTimeout(
+    created.update({
+      content: "<p>Created and updated by the Timeline Notes primary document registration spike.</p>"
+    }, { render: false }),
+    timeoutMs,
+    `${DOCUMENT_NAME}.update`
+  );
 
   addCheck(report, "updated-document", Boolean(updated), {
     id: updated?.id ?? null
@@ -160,7 +182,7 @@ function registerSettings() {
   });
 }
 
-export async function runDocumentRegistrationSpike({ mutate = false, create = false } = {}) {
+export async function runDocumentRegistrationSpike({ mutate = false, create = false, timeoutMs = DEFAULT_CREATE_TIMEOUT_MS } = {}) {
   const report = {
     moduleId: MODULE_ID,
     documentName: DOCUMENT_NAME,
@@ -168,6 +190,7 @@ export async function runDocumentRegistrationSpike({ mutate = false, create = fa
     foundryVersion: getFoundryVersion(),
     mutate,
     create,
+    timeoutMs,
     checks: [],
     errors: []
   };
@@ -205,7 +228,7 @@ export async function runDocumentRegistrationSpike({ mutate = false, create = fa
     if (create) {
       if (!mutate) throw new Error("Creation requires mutate: true so the candidate class is registered first.");
       if (!game.user?.isGM) throw new Error("Creation test requires a GM user.");
-      await tryCreateTimelineNote(report, classes.TimelineNote);
+      await tryCreateTimelineNote(report, classes.TimelineNote, timeoutMs);
     }
   } catch (error) {
     report.errors.push(summarizeError(error));

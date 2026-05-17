@@ -8,7 +8,8 @@ export const SETTINGS = {
   ENABLE_PRIMARY_DOCUMENT_SPIKE: "enablePrimaryDocumentSpike",
   CAMPAIGN_CALENDAR_ID: "campaignCalendarId",
   CAMPAIGN_CURRENT_DATE: "campaignCurrentDate",
-  CAMPAIGN_CURRENT_TIME: "campaignCurrentTime"
+  CAMPAIGN_CURRENT_TIME: "campaignCurrentTime",
+  DEVELOPMENT_NOTES: "developmentNotes"
 };
 
 export const DEFAULT_CALENDAR_ID = "gregorian";

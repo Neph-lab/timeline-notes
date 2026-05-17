@@ -70,6 +70,8 @@ Campaign time setting fields:
 
 Initial implementation note: version `0.1.2` registers hidden world settings for these fields and exposes `timelineNotes.CalendarService` for testing. The GM-facing date/time dialog will build on this service instead of writing settings directly.
 
+Development storage note: version `0.1.3` adds `TimelineNoteStore`, a setting-backed temporary adapter. This lets timeline filtering, sorting, summaries, and permission UI move forward while the final V14 document persistence path is still being validated. It is not the final storage model because settings cannot enforce the same server-side permissions as documents.
+
 ## Permission Model
 
 - GMs can view, update, and delete all notes.
@@ -118,6 +120,8 @@ await timelineNotes.runDocumentRegistrationSpike({ mutate: true, create: true })
 ```
 
 The reload persistence test requires enabling the world setting `Enable primary TimelineNote document spike`, reloading the world, and then re-running the create test.
+
+Observed in V14.361: dry-run and client-side mutation return reports, but the create probe can stall without settling. Version `0.1.3` wraps create/update probes in a timeout so this is reported explicitly.
 
 ### Phase 1: Data and Permissions
 
