@@ -86,6 +86,8 @@ Timeline placement note: version `0.1.11` adds editable start/end date and time 
 
 Timeline card note: version `0.1.12` removes per-card action buttons from the timeline. The title opens view mode, preview text is static, and deletion is handled from the edit interface.
 
+Edit layout note: version `0.1.13` wraps start/end date controls in a dedicated edit-mode date-range container.
+
 ## Permission Model
 
 - GMs can view, update, and delete all notes.

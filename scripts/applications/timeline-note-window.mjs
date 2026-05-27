@@ -155,32 +155,34 @@ export class TimelineNoteWindow extends foundry.applications.api.ApplicationV2 {
           <span>${game.i18n.localize("TIMELINE_NOTES.Field.Name")}</span>
           <input type="text" name="name" value="${escapeHTML(note.name)}">
         </label>
-        <fieldset class="timeline-note-window__dates">
-          <legend>${game.i18n.localize("TIMELINE_NOTES.Field.Start")}</legend>
-          <label>
-            <span>${game.i18n.localize("TIMELINE_NOTES.Field.Date")}</span>
-            <input type="date" name="startDate" value="${escapeHTML(formatDateInput(note.startDate))}">
-          </label>
-          <label>
-            <span>${game.i18n.localize("TIMELINE_NOTES.Field.Time")}</span>
-            <input type="time" name="startTime" step="1" value="${escapeHTML(formatTimeInput(note.startTime))}">
-          </label>
-        </fieldset>
-        <fieldset class="timeline-note-window__dates">
-          <legend>${game.i18n.localize("TIMELINE_NOTES.Field.End")}</legend>
-          <label class="timeline-note-window__checkbox">
-            <input type="checkbox" name="hasEnd" ${note.hasEnd ? "checked" : ""}>
-            <span>${game.i18n.localize("TIMELINE_NOTES.Field.HasEnd")}</span>
-          </label>
-          <label>
-            <span>${game.i18n.localize("TIMELINE_NOTES.Field.Date")}</span>
-            <input type="date" name="endDate" value="${escapeHTML(formatDateInput(note.endDate ?? note.startDate))}">
-          </label>
-          <label>
-            <span>${game.i18n.localize("TIMELINE_NOTES.Field.Time")}</span>
-            <input type="time" name="endTime" step="1" value="${escapeHTML(formatTimeInput(note.endTime ?? note.startTime))}">
-          </label>
-        </fieldset>
+        <div class="timeline-note-window__date-range">
+          <fieldset class="timeline-note-window__dates">
+            <legend>${game.i18n.localize("TIMELINE_NOTES.Field.Start")}</legend>
+            <label>
+              <span>${game.i18n.localize("TIMELINE_NOTES.Field.Date")}</span>
+              <input type="date" name="startDate" value="${escapeHTML(formatDateInput(note.startDate))}">
+            </label>
+            <label>
+              <span>${game.i18n.localize("TIMELINE_NOTES.Field.Time")}</span>
+              <input type="time" name="startTime" step="1" value="${escapeHTML(formatTimeInput(note.startTime))}">
+            </label>
+          </fieldset>
+          <fieldset class="timeline-note-window__dates">
+            <legend>${game.i18n.localize("TIMELINE_NOTES.Field.End")}</legend>
+            <label class="timeline-note-window__checkbox">
+              <input type="checkbox" name="hasEnd" ${note.hasEnd ? "checked" : ""}>
+              <span>${game.i18n.localize("TIMELINE_NOTES.Field.HasEnd")}</span>
+            </label>
+            <label>
+              <span>${game.i18n.localize("TIMELINE_NOTES.Field.Date")}</span>
+              <input type="date" name="endDate" value="${escapeHTML(formatDateInput(note.endDate ?? note.startDate))}">
+            </label>
+            <label>
+              <span>${game.i18n.localize("TIMELINE_NOTES.Field.Time")}</span>
+              <input type="time" name="endTime" step="1" value="${escapeHTML(formatTimeInput(note.endTime ?? note.startTime))}">
+            </label>
+          </fieldset>
+        </div>
         <div class="timeline-note-window__editor">
           <span>${game.i18n.localize("TIMELINE_NOTES.Field.Content")}</span>
           <prose-mirror

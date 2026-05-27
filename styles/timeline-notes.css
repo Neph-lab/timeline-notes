@@ -175,6 +175,11 @@
   gap: 0.25rem;
 }
 
+.timeline-note-window__date-range {
+  display: grid;
+  gap: 0.5rem;
+}
+
 .timeline-note-window__dates {
   grid-template-columns: 1fr 1fr;
 }

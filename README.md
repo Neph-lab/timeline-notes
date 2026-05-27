@@ -82,3 +82,5 @@ Version `0.1.10` orders the Timeline sidebar tab immediately after Journal.
 Version `0.1.11` adds editable note start/end date and time fields. Notes with an end date render at both start and end positions in the timeline with a start/end indicator.
 
 Version `0.1.12` simplifies timeline cards: note titles open view mode, previews are plain text, timeline action buttons are removed, and delete is only available from the note edit window.
+
+Version `0.1.13` wraps the start/end controls in a dedicated date-range container for edit-mode layout.
