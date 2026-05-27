@@ -113,6 +113,10 @@ export class TimelineNoteWindow extends foundry.applications.api.ApplicationV2 {
     this.element.querySelector("[data-action='save-note']")?.addEventListener("click", async () => {
       await this.#save();
     });
+
+    this.element.querySelector("[data-action='delete-note']")?.addEventListener("click", async () => {
+      await this.#delete();
+    });
   }
 
   async #renderViewMode(note, editable) {
@@ -193,8 +197,11 @@ export class TimelineNoteWindow extends foundry.applications.api.ApplicationV2 {
           ${visibilityOptions(note.visibility)}
         </fieldset>
         <footer class="timeline-note-window__footer">
-          <button type="button" data-action="toggle-edit">${game.i18n.localize("TIMELINE_NOTES.Action.Cancel")}</button>
-          <button type="button" data-action="save-note"><i class="fa-solid fa-floppy-disk"></i> ${game.i18n.localize("TIMELINE_NOTES.Action.Save")}</button>
+          ${TimelineNotePermissions.canDelete(note) ? `<button type="button" data-action="delete-note" class="timeline-note-window__delete"><i class="fa-solid fa-trash"></i> ${game.i18n.localize("TIMELINE_NOTES.Action.Delete")}</button>` : "<span></span>"}
+          <span class="timeline-note-window__footer-actions">
+            <button type="button" data-action="toggle-edit">${game.i18n.localize("TIMELINE_NOTES.Action.Cancel")}</button>
+            <button type="button" data-action="save-note"><i class="fa-solid fa-floppy-disk"></i> ${game.i18n.localize("TIMELINE_NOTES.Action.Save")}</button>
+          </span>
         </footer>
       </form>
     `;
@@ -218,5 +225,18 @@ export class TimelineNoteWindow extends foundry.applications.api.ApplicationV2 {
 
     this.editing = false;
     await this.render({ force: true });
+  }
+
+  async #delete() {
+    const proceed = await foundry.applications.api.DialogV2.confirm({
+      window: { title: game.i18n.localize("TIMELINE_NOTES.DeleteConfirm.Title") },
+      content: `<p>${game.i18n.localize("TIMELINE_NOTES.DeleteConfirm.Content")}</p>`,
+      modal: true,
+      rejectClose: false
+    });
+    if (!proceed) return;
+
+    await TimelineNoteStore.delete(this.noteId);
+    await this.close();
   }
 }

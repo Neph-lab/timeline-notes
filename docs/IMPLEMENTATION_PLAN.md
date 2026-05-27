@@ -84,6 +84,8 @@ Sidebar order note: version `0.1.10` inserts the Timeline tab immediately after 
 
 Timeline placement note: version `0.1.11` adds editable start/end date and time fields. The sidebar derives timeline entries from notes, rendering a start entry for every note and an end entry when `hasEnd` is enabled.
 
+Timeline card note: version `0.1.12` removes per-card action buttons from the timeline. The title opens view mode, preview text is static, and deletion is handled from the edit interface.
+
 ## Permission Model
 
 - GMs can view, update, and delete all notes.

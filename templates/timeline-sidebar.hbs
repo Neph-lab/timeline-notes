@@ -35,27 +35,16 @@
                     <article class="timeline-notes-card" data-note-id="{{id}}" data-entry-type="{{entryType}}">
                       <header>
                         <time>{{dateTime}}</time>
-                        <span class="timeline-notes-card__marker timeline-notes-card__marker--{{entryType}}">{{entryTypeLabel}}</span>
-                        <strong>{{name}}</strong>
-                      </header>
-                      <button type="button" class="timeline-notes-card__main" data-action="open-note" data-note-id="{{id}}">
-                        {{preview}}
-                      </button>
-                      <footer>
-                        <button type="button" data-action="open-note" data-note-id="{{id}}">
-                          <i class="fa-solid fa-eye"></i> {{localize "TIMELINE_NOTES.Action.View"}}
+                        {{#if entryTypeLabel}}
+                          <span class="timeline-notes-card__marker timeline-notes-card__marker--{{entryType}}">{{entryTypeLabel}}</span>
+                        {{/if}}
+                        <button type="button" class="timeline-notes-card__title" data-action="open-note" data-note-id="{{id}}">
+                          {{name}}
                         </button>
-                        {{#if canEdit}}
-                          <button type="button" data-action="edit-note" data-note-id="{{id}}">
-                            <i class="fa-solid fa-pen"></i> {{localize "TIMELINE_NOTES.Action.Edit"}}
-                          </button>
-                        {{/if}}
-                        {{#if canDelete}}
-                          <button type="button" data-action="delete-note" data-note-id="{{id}}">
-                            <i class="fa-solid fa-trash"></i> {{localize "TIMELINE_NOTES.Action.Delete"}}
-                          </button>
-                        {{/if}}
-                      </footer>
+                      </header>
+                      <p class="timeline-notes-card__preview">
+                        {{preview}}
+                      </p>
                     </article>
                   {{/each}}
                 </section>

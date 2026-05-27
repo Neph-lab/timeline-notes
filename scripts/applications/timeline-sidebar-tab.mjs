@@ -35,13 +35,11 @@ function prepareTimelineEntry(note, type) {
 
   return {
     ...note,
-    canDelete: TimelineNotePermissions.canDelete(note),
-    canEdit: TimelineNotePermissions.canEdit(note),
     dateTime: CalendarService.formatDateTime({ date, time }),
     entryDate: date,
     entryTime: time,
     entryType: type,
-    entryTypeLabel: game.i18n.localize(isEnd ? "TIMELINE_NOTES.Entry.End" : "TIMELINE_NOTES.Entry.Start"),
+    entryTypeLabel: isEnd ? game.i18n.localize("TIMELINE_NOTES.Entry.End") : "",
     key: `${note.id}-${type}`,
     preview: getPreview(note.content) || game.i18n.localize("TIMELINE_NOTES.Note.EmptyContent")
   };
@@ -255,28 +253,11 @@ export class TimelineSidebarTab extends HandlebarsApplicationMixin(AbstractSideb
       await this.render({ force: true });
     });
 
-    root.querySelectorAll("[data-action='open-note'], [data-action='edit-note']").forEach((button) => {
+    root.querySelectorAll("[data-action='open-note']").forEach((button) => {
       button.addEventListener("click", (event) => {
         const noteId = event.currentTarget.dataset.noteId;
         const app = new TimelineNoteWindow(noteId);
-        if (event.currentTarget.dataset.action === "edit-note") app.editing = true;
         app.render({ force: true });
-      });
-    });
-
-    root.querySelectorAll("[data-action='delete-note']").forEach((button) => {
-      button.addEventListener("click", async (event) => {
-        const noteId = event.currentTarget.dataset.noteId;
-        const proceed = await foundry.applications.api.DialogV2.confirm({
-          window: { title: game.i18n.localize("TIMELINE_NOTES.DeleteConfirm.Title") },
-          content: `<p>${game.i18n.localize("TIMELINE_NOTES.DeleteConfirm.Content")}</p>`,
-          modal: true,
-          rejectClose: false
-        });
-        if (!proceed) return;
-
-        await TimelineNoteStore.delete(noteId);
-        await this.render({ force: true });
       });
     });
   }
