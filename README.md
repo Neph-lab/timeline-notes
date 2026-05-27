@@ -72,3 +72,5 @@ await timelineNotes.TimelineNoteStore.delete(note.id);
 Version `0.1.4` registers an initial V14 `AbstractSidebarTab` named `timelineNotes`. After updating the module, the sidebar should include a Timeline tab with create, filter, sort, view, edit, and delete controls backed by the temporary development note store.
 
 Version `0.1.7` replaces the fallback mount with the V14 sidebar pattern used by DFreds UI Extender guidance: `HandlebarsApplicationMixin(AbstractSidebarTab)` plus a `PARTS` template keyed to the sidebar tab name.
+
+Version `0.1.8` adds a store change hook so the sidebar updates when notes are saved from their own windows.

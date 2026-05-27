@@ -2,6 +2,8 @@ import { DEFAULT_CALENDAR_ID, MODULE_ID, SETTINGS, VISIBILITY } from "../constan
 import { CalendarService } from "./calendar-service.mjs";
 import { TimelineNotePermissions } from "./permissions.mjs";
 
+const NOTES_CHANGED_HOOK = `${MODULE_ID}.notesChanged`;
+
 function getStoredNotes() {
   const value = game.settings.get(MODULE_ID, SETTINGS.DEVELOPMENT_NOTES);
   return Array.isArray(value) ? foundry.utils.deepClone(value) : [];
@@ -10,6 +12,10 @@ function getStoredNotes() {
 async function setStoredNotes(notes) {
   await game.settings.set(MODULE_ID, SETTINGS.DEVELOPMENT_NOTES, notes);
   return getStoredNotes();
+}
+
+function notifyNotesChanged(action, note = null) {
+  Hooks.callAll(NOTES_CHANGED_HOOK, { action, note });
 }
 
 function createId() {
@@ -97,6 +103,7 @@ export class TimelineNoteStore {
     notes.push(note);
 
     await setStoredNotes(notes);
+    notifyNotesChanged("create", note);
     return note;
   }
 
@@ -110,6 +117,7 @@ export class TimelineNoteStore {
     notes[index] = updated;
 
     await setStoredNotes(notes);
+    notifyNotesChanged("update", updated);
     return updated;
   }
 
@@ -120,7 +128,9 @@ export class TimelineNoteStore {
     if (!TimelineNotePermissions.canDelete(note, user)) throw new Error("You do not have permission to delete this timeline note.");
 
     await setStoredNotes(notes.filter((candidate) => candidate.id !== id));
+    notifyNotesChanged("delete", note);
     return true;
   }
 }
 
+TimelineNoteStore.NOTES_CHANGED_HOOK = NOTES_CHANGED_HOOK;

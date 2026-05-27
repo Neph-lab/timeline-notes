@@ -76,6 +76,8 @@ Sidebar implementation note: version `0.1.4` registers an initial `AbstractSideb
 
 V14 sidebar observation: Foundry creates application part templates for custom tabs. Version `0.1.7` replaces the earlier raw-render fallback with the V14 pattern shown by DFreds UI Extender guidance: `HandlebarsApplicationMixin(AbstractSidebarTab)` with a `PARTS` template keyed to the tab name.
 
+Sidebar refresh note: version `0.1.8` emits `timeline-notes.notesChanged` from the temporary store and re-renders the sidebar when notes are created, updated, or deleted outside the sidebar itself.
+
 ## Permission Model
 
 - GMs can view, update, and delete all notes.

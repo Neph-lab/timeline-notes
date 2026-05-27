@@ -116,6 +116,11 @@ export class TimelineSidebarTab extends HandlebarsApplicationMixin(AbstractSideb
     super(options);
     this.query = "";
     this.direction = "future";
+    Hooks.on(TimelineNoteStore.NOTES_CHANGED_HOOK, this.#handleNotesChanged);
+  }
+
+  #handleNotesChanged = () => {
+      if (this.rendered) this.render({ force: true });
   }
 
   async _prepareContext(options) {
@@ -146,6 +151,12 @@ export class TimelineSidebarTab extends HandlebarsApplicationMixin(AbstractSideb
       direction: this.direction,
       query: this.query
     });
+  }
+
+  async close(options) {
+    Hooks.off(TimelineNoteStore.NOTES_CHANGED_HOOK, this.#handleNotesChanged);
+
+    return super.close(options);
   }
 
   #activateListeners(root) {
@@ -253,4 +264,3 @@ export function registerTimelineSidebarTab() {
 
   console.info(`${MODULE_ID} | Registered timeline sidebar tab`, { tab: SIDEBAR_TAB_ID });
 }
-
