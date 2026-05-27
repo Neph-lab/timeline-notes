@@ -151,13 +151,18 @@
 }
 
 .timeline-note-window__form label,
+.timeline-note-window__editor,
 .timeline-note-window__form fieldset {
   display: grid;
   gap: 0.25rem;
 }
 
-.timeline-note-window__form textarea {
-  resize: vertical;
+.timeline-note-window prose-mirror {
+  min-height: 14rem;
+}
+
+.timeline-note-window prose-mirror .editor-content {
+  min-height: 12rem;
 }
 
 .timeline-notes-dialog-grid {

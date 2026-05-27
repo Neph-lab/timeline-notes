@@ -78,6 +78,8 @@ V14 sidebar observation: Foundry creates application part templates for custom t
 
 Sidebar refresh note: version `0.1.8` emits `timeline-notes.notesChanged` from the temporary store and re-renders the sidebar when notes are created, updated, or deleted outside the sidebar itself.
 
+Editor note: version `0.1.9` uses Foundry's `<prose-mirror>` editor element in note edit mode and Foundry text enrichment in view mode, preserving world-document link rendering.
+
 ## Permission Model
 
 - GMs can view, update, and delete all notes.

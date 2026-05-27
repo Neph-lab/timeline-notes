@@ -9,6 +9,18 @@ function escapeHTML(value) {
   return element.innerHTML;
 }
 
+function getTextEditor() {
+  return foundry.applications.ux?.TextEditor?.implementation ?? globalThis.TextEditor;
+}
+
+function getProseMirrorContent(form) {
+  const data = new FormData(form);
+  const proseMirror = form.querySelector("prose-mirror[name='content']");
+  const value = proseMirror?.value ?? proseMirror?.editor?.view?.dom?.innerHTML ?? data.get("content");
+
+  return String(value ?? "");
+}
+
 function visibilityOptions(selected) {
   return Object.entries({
     [VISIBILITY.PRIVATE]: "TIMELINE_NOTES.Visibility.Private",
@@ -61,7 +73,7 @@ export class TimelineNoteWindow extends foundry.applications.api.ApplicationV2 {
     }
 
     const editable = TimelineNotePermissions.canEdit(note);
-    const content = this.editing && editable ? this.#renderEditMode(note) : await this.#renderViewMode(note, editable);
+    const content = this.editing && editable ? await this.#renderEditMode(note) : await this.#renderViewMode(note, editable);
     const element = document.createElement("section");
     element.className = "timeline-note-window__content";
     element.innerHTML = content;
@@ -86,8 +98,9 @@ export class TimelineNoteWindow extends foundry.applications.api.ApplicationV2 {
   }
 
   async #renderViewMode(note, editable) {
-    const enriched = await TextEditor.enrichHTML(note.content ?? "", {
+    const enriched = await getTextEditor().enrichHTML(note.content ?? "", {
       async: true,
+      relativeTo: game.world,
       secrets: game.user?.isGM
     });
 
@@ -104,17 +117,30 @@ export class TimelineNoteWindow extends foundry.applications.api.ApplicationV2 {
     `;
   }
 
-  #renderEditMode(note) {
+  async #renderEditMode(note) {
+    const enriched = await getTextEditor().enrichHTML(note.content ?? "", {
+      async: true,
+      relativeTo: game.world,
+      secrets: game.user?.isGM
+    });
+
     return `
       <form class="timeline-note-window__form">
         <label>
           <span>${game.i18n.localize("TIMELINE_NOTES.Field.Name")}</span>
           <input type="text" name="name" value="${escapeHTML(note.name)}">
         </label>
-        <label>
+        <div class="timeline-note-window__editor">
           <span>${game.i18n.localize("TIMELINE_NOTES.Field.Content")}</span>
-          <textarea name="content" rows="12">${escapeHTML(note.content ?? "")}</textarea>
-        </label>
+          <prose-mirror
+            name="content"
+            button="true"
+            editable="true"
+            toggled="true"
+            value="${escapeHTML(note.content ?? "")}">
+            ${enriched}
+          </prose-mirror>
+        </div>
         <fieldset>
           <legend>${game.i18n.localize("TIMELINE_NOTES.Field.Visibility")}</legend>
           ${visibilityOptions(note.visibility)}
@@ -134,7 +160,7 @@ export class TimelineNoteWindow extends foundry.applications.api.ApplicationV2 {
     const data = new FormData(form);
     await TimelineNoteStore.update(this.noteId, {
       name: data.get("name"),
-      content: data.get("content"),
+      content: getProseMirrorContent(form),
       visibility: data.get("visibility")
     });
 
