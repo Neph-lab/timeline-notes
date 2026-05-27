@@ -76,3 +76,5 @@ Version `0.1.7` replaces the fallback mount with the V14 sidebar pattern used by
 Version `0.1.8` adds a store change hook so the sidebar updates when notes are saved from their own windows.
 
 Version `0.1.9` replaces the temporary textarea with Foundry's ProseMirror custom element and renders note view mode through Foundry text enrichment so document links resolve correctly.
+
+Version `0.1.10` orders the Timeline sidebar tab immediately after Journal.

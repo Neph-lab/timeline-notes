@@ -2,7 +2,7 @@
   "id": "timeline-notes",
   "title": "Timeline Notes",
   "description": "A Foundry VTT V14 sidebar timeline for dated campaign notes.",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "manifest": "https://raw.githubusercontent.com/Neph-lab/timeline-notes/refs/heads/main/module.json",
   "download": "https://github.com/Neph-lab/timeline-notes/archive/refs/heads/main.zip",
   "compatibility": {

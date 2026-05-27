@@ -8,6 +8,7 @@ const { AbstractSidebarTab } = foundry.applications.sidebar;
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 
 const SIDEBAR_TAB_ID = "timelineNotes";
+const JOURNAL_TAB_ID = "journal";
 
 function stripHTML(value) {
   const element = document.createElement("div");
@@ -257,10 +258,27 @@ export class TimelineSidebarTab extends HandlebarsApplicationMixin(AbstractSideb
 
 export function registerTimelineSidebarTab() {
   CONFIG.ui[SIDEBAR_TAB_ID] = TimelineSidebarTab;
+
+  const tabEntries = Object.entries(CONFIG.ui.sidebar.TABS);
+  const journalIndex = tabEntries.findIndex(([id]) => id === JOURNAL_TAB_ID);
   CONFIG.ui.sidebar.TABS[SIDEBAR_TAB_ID] = {
     icon: "fa-solid fa-timeline",
     tooltip: "TIMELINE_NOTES.Sidebar.Title"
   };
+  const timelineEntry = [SIDEBAR_TAB_ID, CONFIG.ui.sidebar.TABS[SIDEBAR_TAB_ID]];
 
-  console.info(`${MODULE_ID} | Registered timeline sidebar tab`, { tab: SIDEBAR_TAB_ID });
+  if (journalIndex >= 0) {
+    const reorderedEntries = [
+      ...tabEntries.slice(0, journalIndex + 1),
+      timelineEntry,
+      ...tabEntries.slice(journalIndex + 1)
+    ];
+
+    CONFIG.ui.sidebar.TABS = Object.fromEntries(reorderedEntries);
+  }
+
+  console.info(`${MODULE_ID} | Registered timeline sidebar tab`, {
+    after: journalIndex >= 0 ? JOURNAL_TAB_ID : null,
+    tab: SIDEBAR_TAB_ID
+  });
 }
