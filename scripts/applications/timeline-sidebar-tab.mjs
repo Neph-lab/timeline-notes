@@ -4,14 +4,10 @@ import { TimelineNotePermissions } from "../services/permissions.mjs";
 import { TimelineNoteStore } from "../services/note-store.mjs";
 import { TimelineNoteWindow } from "./timeline-note-window.mjs";
 
-const SIDEBAR_TAB_ID = "timelineNotes";
-let fallbackSidebarTab = null;
+const { AbstractSidebarTab } = foundry.applications.sidebar;
+const { HandlebarsApplicationMixin } = foundry.applications.api;
 
-function escapeHTML(value) {
-  const element = document.createElement("span");
-  element.textContent = value ?? "";
-  return element.innerHTML;
-}
+const SIDEBAR_TAB_ID = "timelineNotes";
 
 function stripHTML(value) {
   const element = document.createElement("div");
@@ -29,6 +25,16 @@ function getPreview(content) {
 function getMonthLabel(month) {
   const date = new Date(Date.UTC(2000, Number(month) - 1, 1));
   return date.toLocaleString(game.i18n.lang, { month: "long", timeZone: "UTC" });
+}
+
+function prepareNote(note) {
+  return {
+    ...note,
+    canDelete: TimelineNotePermissions.canDelete(note),
+    canEdit: TimelineNotePermissions.canEdit(note),
+    dateTime: CalendarService.formatDateTime({ date: note.startDate, time: note.startTime }),
+    preview: getPreview(note.content) || game.i18n.localize("TIMELINE_NOTES.Note.EmptyContent")
+  };
 }
 
 function groupNotes(notes) {
@@ -66,60 +72,16 @@ function groupNotes(notes) {
   return years;
 }
 
-function renderNoteCard(note) {
-  const canEdit = TimelineNotePermissions.canEdit(note);
-  const canDelete = TimelineNotePermissions.canDelete(note);
-  const dateTime = CalendarService.formatDateTime({ date: note.startDate, time: note.startTime });
-
-  return `
-    <article class="timeline-notes-card" data-note-id="${escapeHTML(note.id)}">
-      <header>
-        <time>${escapeHTML(dateTime)}</time>
-        <strong>${escapeHTML(note.name)}</strong>
-      </header>
-      <button type="button" class="timeline-notes-card__main" data-action="open-note" data-note-id="${escapeHTML(note.id)}">
-        ${escapeHTML(getPreview(note.content) || game.i18n.localize("TIMELINE_NOTES.Note.EmptyContent"))}
-      </button>
-      <footer>
-        <button type="button" data-action="open-note" data-note-id="${escapeHTML(note.id)}">
-          <i class="fa-solid fa-eye"></i> ${game.i18n.localize("TIMELINE_NOTES.Action.View")}
-        </button>
-        ${canEdit ? `<button type="button" data-action="edit-note" data-note-id="${escapeHTML(note.id)}"><i class="fa-solid fa-pen"></i> ${game.i18n.localize("TIMELINE_NOTES.Action.Edit")}</button>` : ""}
-        ${canDelete ? `<button type="button" data-action="delete-note" data-note-id="${escapeHTML(note.id)}"><i class="fa-solid fa-trash"></i> ${game.i18n.localize("TIMELINE_NOTES.Action.Delete")}</button>` : ""}
-      </footer>
-    </article>
-  `;
-}
-
-function renderTimelineGroups(groups) {
-  return groups.map((yearGroup) => `
-    <section class="timeline-notes-year">
-      <h2>${escapeHTML(yearGroup.year)}</h2>
-      ${yearGroup.months.map((monthGroup) => `
-        <section class="timeline-notes-month">
-          <h3>${escapeHTML(monthGroup.label)}</h3>
-          ${monthGroup.days.map((dayGroup) => `
-            <section class="timeline-notes-day">
-              <h4>${escapeHTML(dayGroup.day)}</h4>
-              ${dayGroup.notes.map(renderNoteCard).join("")}
-            </section>
-          `).join("")}
-        </section>
-      `).join("")}
-    </section>
-  `).join("");
-}
-
 function dateDialogContent(current) {
   return `
     <div class="timeline-notes-dialog-grid">
       <label>
         <span>${game.i18n.localize("TIMELINE_NOTES.Field.Date")}</span>
-        <input type="date" name="date" value="${escapeHTML(CalendarService.formatDate(current.date))}">
+        <input type="date" name="date" value="${CalendarService.formatDate(current.date)}">
       </label>
       <label>
         <span>${game.i18n.localize("TIMELINE_NOTES.Field.Time")}</span>
-        <input type="time" name="time" step="1" value="${escapeHTML(CalendarService.formatTime(current.time))}">
+        <input type="time" name="time" step="1" value="${CalendarService.formatTime(current.time)}">
       </label>
     </div>
   `;
@@ -135,16 +97,18 @@ function parseTimeInput(value) {
   return { hour, minute, second };
 }
 
-export class TimelineSidebarTab extends foundry.applications.sidebar.AbstractSidebarTab {
+export class TimelineSidebarTab extends HandlebarsApplicationMixin(AbstractSidebarTab) {
   static tabName = SIDEBAR_TAB_ID;
 
   static DEFAULT_OPTIONS = {
-    id: "timeline-notes-sidebar",
-    classes: ["sidebar-tab", "timeline-notes", "timeline-notes-sidebar"],
-    tag: "section",
     window: {
-      frame: false,
-      positioned: false
+      title: "TIMELINE_NOTES.Sidebar.Title"
+    }
+  };
+
+  static PARTS = {
+    [SIDEBAR_TAB_ID]: {
+      template: `modules/${MODULE_ID}/templates/timeline-sidebar.hbs`
     }
   };
 
@@ -154,75 +118,45 @@ export class TimelineSidebarTab extends foundry.applications.sidebar.AbstractSid
     this.direction = "future";
   }
 
-  async _renderHTML() {
-    const notes = TimelineNoteStore.list({ query: this.query, direction: this.direction });
+  async _prepareContext(options) {
+    const notes = TimelineNoteStore.list({ query: this.query, direction: this.direction }).map(prepareNote);
     const groups = groupNotes(notes);
     const current = CalendarService.getCurrentDateTime();
-    const orderLabel = this.direction === "future"
-      ? game.i18n.localize("TIMELINE_NOTES.Action.FutureFirst")
-      : game.i18n.localize("TIMELINE_NOTES.Action.OldestFirst");
 
-    const element = document.createElement("section");
-    element.className = "timeline-notes-sidebar__content";
-    element.innerHTML = `
-      <header class="timeline-notes-toolbar">
-        <div class="timeline-notes-toolbar__buttons">
-          <button type="button" data-action="create-note" title="${game.i18n.localize("TIMELINE_NOTES.Action.Create")}">
-            <i class="fa-solid fa-plus"></i>
-          </button>
-          <button type="button" data-action="jump-date" title="${game.i18n.localize("TIMELINE_NOTES.Action.JumpDate")}">
-            <i class="fa-solid fa-calendar-days"></i>
-          </button>
-          ${game.user.isGM ? `
-            <button type="button" data-action="set-campaign-time" title="${game.i18n.localize("TIMELINE_NOTES.Action.SetCampaignTime")}">
-              <i class="fa-solid fa-clock"></i>
-            </button>
-          ` : ""}
-          <button type="button" data-action="toggle-order" title="${escapeHTML(orderLabel)}">
-            <i class="fa-solid fa-arrow-down-wide-short"></i>
-          </button>
-        </div>
-        <input type="search" name="query" value="${escapeHTML(this.query)}" placeholder="${game.i18n.localize("TIMELINE_NOTES.Action.Filter")}">
-        <p>${escapeHTML(CalendarService.formatDateTime(current))}</p>
-      </header>
-      <main class="timeline-notes-list">
-        ${notes.length ? renderTimelineGroups(groups) : `<p class="timeline-notes-empty">${game.i18n.localize("TIMELINE_NOTES.EmptyTimeline")}</p>`}
-      </main>
-    `;
-
-    console.debug(`${MODULE_ID} | Rendered timeline sidebar`, {
-      notes: notes.length,
-      groups: groups.length,
+    return {
+      ...(await super._prepareContext(options)),
+      currentDateTime: CalendarService.formatDateTime(current),
       direction: this.direction,
+      groups,
+      hasNotes: notes.length > 0,
+      isGM: game.user.isGM,
+      orderLabel: this.direction === "future"
+        ? game.i18n.localize("TIMELINE_NOTES.Action.FutureFirst")
+        : game.i18n.localize("TIMELINE_NOTES.Action.OldestFirst"),
       query: this.query
-    });
-
-    return element;
-  }
-
-  _replaceHTML(result, content, options) {
-    if (content instanceof HTMLElement) {
-      content.replaceChildren(result);
-      return;
-    }
-
-    super._replaceHTML(result, content, options);
+    };
   }
 
   async _onRender(context, options) {
     await super._onRender(context, options);
-    this.activateListeners(this.element);
+    this.#activateListeners(this.element);
+
+    console.debug(`${MODULE_ID} | Rendered timeline sidebar`, {
+      groups: context.groups?.length ?? 0,
+      direction: this.direction,
+      query: this.query
+    });
   }
 
-  activateListeners(root) {
+  #activateListeners(root) {
     root.querySelector("[name='query']")?.addEventListener("input", (event) => {
       this.query = event.currentTarget.value;
-      this.refresh();
+      this.render({ force: true });
     });
 
     root.querySelector("[data-action='toggle-order']")?.addEventListener("click", () => {
       this.direction = this.direction === "future" ? "oldest" : "future";
-      this.refresh();
+      this.render({ force: true });
     });
 
     root.querySelector("[data-action='create-note']")?.addEventListener("click", async () => {
@@ -230,7 +164,7 @@ export class TimelineSidebarTab extends foundry.applications.sidebar.AbstractSid
         name: game.i18n.localize("TIMELINE_NOTES.DefaultNoteName"),
         content: "<p></p>"
       });
-      await this.refresh();
+      await this.render({ force: true });
       new TimelineNoteWindow(note.id).render({ force: true });
     });
 
@@ -251,7 +185,7 @@ export class TimelineSidebarTab extends foundry.applications.sidebar.AbstractSid
       if (!result) return;
 
       const targetKey = CalendarService.toSortKey(result);
-      const cards = [...root.querySelectorAll("[data-note-id]")];
+      const cards = [...root.querySelectorAll(".timeline-notes-card")];
       const target = cards.find((card) => {
         const note = TimelineNoteStore.get(card.dataset.noteId);
         if (!note) return false;
@@ -280,7 +214,7 @@ export class TimelineSidebarTab extends foundry.applications.sidebar.AbstractSid
       if (!result) return;
 
       await CalendarService.setCurrentDateTime(result);
-      await this.refresh();
+      await this.render({ force: true });
     });
 
     root.querySelectorAll("[data-action='open-note'], [data-action='edit-note']").forEach((button) => {
@@ -304,41 +238,10 @@ export class TimelineSidebarTab extends foundry.applications.sidebar.AbstractSid
         if (!proceed) return;
 
         await TimelineNoteStore.delete(noteId);
-        await this.refresh();
+        await this.render({ force: true });
       });
     });
   }
-
-  async refresh() {
-    if (this.rendered) {
-      await this.render({ force: true });
-      return;
-    }
-
-    await mountTimelineSidebarFallback();
-  }
-}
-
-export async function mountTimelineSidebarFallback(sidebar = ui.sidebar) {
-  const mountPoint = sidebar?.element?.querySelector(
-    `template#${SIDEBAR_TAB_ID}[data-application-part="${SIDEBAR_TAB_ID}"], section#${SIDEBAR_TAB_ID}[data-application-part="${SIDEBAR_TAB_ID}"]`
-  );
-  if (!mountPoint) return false;
-
-  fallbackSidebarTab ??= new TimelineSidebarTab();
-  const content = await fallbackSidebarTab._renderHTML();
-  content.id = SIDEBAR_TAB_ID;
-  content.dataset.applicationPart = SIDEBAR_TAB_ID;
-  content.dataset.group = "primary";
-  content.dataset.tab = SIDEBAR_TAB_ID;
-  content.classList.add("sidebar-tab", "timeline-notes-sidebar");
-  content.classList.toggle("active", sidebar?.tabGroups?.primary === SIDEBAR_TAB_ID);
-
-  mountPoint.replaceWith(content);
-  fallbackSidebarTab.activateListeners(content);
-
-  console.info(`${MODULE_ID} | Mounted timeline sidebar fallback`, { tab: SIDEBAR_TAB_ID });
-  return true;
 }
 
 export function registerTimelineSidebarTab() {
@@ -348,9 +251,6 @@ export function registerTimelineSidebarTab() {
     tooltip: "TIMELINE_NOTES.Sidebar.Title"
   };
 
-  Hooks.on("renderSidebar", (sidebar) => {
-    mountTimelineSidebarFallback(sidebar);
-  });
-
   console.info(`${MODULE_ID} | Registered timeline sidebar tab`, { tab: SIDEBAR_TAB_ID });
 }
+

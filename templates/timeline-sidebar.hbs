@@ -1,0 +1,70 @@
+<section class="timeline-notes-sidebar__content">
+  <header class="timeline-notes-toolbar">
+    <div class="timeline-notes-toolbar__buttons">
+      <button type="button" data-action="create-note" title="{{localize "TIMELINE_NOTES.Action.Create"}}">
+        <i class="fa-solid fa-plus"></i>
+      </button>
+      <button type="button" data-action="jump-date" title="{{localize "TIMELINE_NOTES.Action.JumpDate"}}">
+        <i class="fa-solid fa-calendar-days"></i>
+      </button>
+      {{#if isGM}}
+        <button type="button" data-action="set-campaign-time" title="{{localize "TIMELINE_NOTES.Action.SetCampaignTime"}}">
+          <i class="fa-solid fa-clock"></i>
+        </button>
+      {{/if}}
+      <button type="button" data-action="toggle-order" title="{{orderLabel}}">
+        <i class="fa-solid fa-arrow-down-wide-short"></i>
+      </button>
+    </div>
+    <input type="search" name="query" value="{{query}}" placeholder="{{localize "TIMELINE_NOTES.Action.Filter"}}">
+    <p>{{currentDateTime}}</p>
+  </header>
+
+  <main class="timeline-notes-list">
+    {{#if hasNotes}}
+      {{#each groups}}
+        <section class="timeline-notes-year">
+          <h2>{{year}}</h2>
+          {{#each months}}
+            <section class="timeline-notes-month">
+              <h3>{{label}}</h3>
+              {{#each days}}
+                <section class="timeline-notes-day">
+                  <h4>{{day}}</h4>
+                  {{#each notes}}
+                    <article class="timeline-notes-card" data-note-id="{{id}}">
+                      <header>
+                        <time>{{dateTime}}</time>
+                        <strong>{{name}}</strong>
+                      </header>
+                      <button type="button" class="timeline-notes-card__main" data-action="open-note" data-note-id="{{id}}">
+                        {{preview}}
+                      </button>
+                      <footer>
+                        <button type="button" data-action="open-note" data-note-id="{{id}}">
+                          <i class="fa-solid fa-eye"></i> {{localize "TIMELINE_NOTES.Action.View"}}
+                        </button>
+                        {{#if canEdit}}
+                          <button type="button" data-action="edit-note" data-note-id="{{id}}">
+                            <i class="fa-solid fa-pen"></i> {{localize "TIMELINE_NOTES.Action.Edit"}}
+                          </button>
+                        {{/if}}
+                        {{#if canDelete}}
+                          <button type="button" data-action="delete-note" data-note-id="{{id}}">
+                            <i class="fa-solid fa-trash"></i> {{localize "TIMELINE_NOTES.Action.Delete"}}
+                          </button>
+                        {{/if}}
+                      </footer>
+                    </article>
+                  {{/each}}
+                </section>
+              {{/each}}
+            </section>
+          {{/each}}
+        </section>
+      {{/each}}
+    {{else}}
+      <p class="timeline-notes-empty">{{localize "TIMELINE_NOTES.EmptyTimeline"}}</p>
+    {{/if}}
+  </main>
+</section>
