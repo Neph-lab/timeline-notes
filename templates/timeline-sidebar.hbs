@@ -32,9 +32,10 @@
                 <section class="timeline-notes-day">
                   <h4>{{day}}</h4>
                   {{#each notes}}
-                    <article class="timeline-notes-card" data-note-id="{{id}}">
+                    <article class="timeline-notes-card" data-note-id="{{id}}" data-entry-type="{{entryType}}">
                       <header>
                         <time>{{dateTime}}</time>
+                        <span class="timeline-notes-card__marker timeline-notes-card__marker--{{entryType}}">{{entryTypeLabel}}</span>
                         <strong>{{name}}</strong>
                       </header>
                       <button type="button" class="timeline-notes-card__main" data-action="open-note" data-note-id="{{id}}">

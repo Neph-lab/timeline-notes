@@ -33,6 +33,7 @@ function normalizeNoteData(data = {}, existing = null) {
   const startTime = data.startTime ?? existing?.startTime ?? defaults.time;
   const endDate = data.endDate ?? existing?.endDate ?? startDate;
   const endTime = data.endTime ?? existing?.endTime ?? startTime;
+  const hasEnd = Boolean(data.hasEnd ?? existing?.hasEnd ?? false);
   const calendarId = data.calendarId ?? existing?.calendarId ?? defaults.calendarId ?? DEFAULT_CALENDAR_ID;
   const now = Date.now();
 
@@ -42,6 +43,7 @@ function normalizeNoteData(data = {}, existing = null) {
     author: existing?.author ?? data.author ?? game.user.id,
     startDate,
     startTime,
+    hasEnd,
     endDate,
     endTime,
     content: String(data.content ?? existing?.content ?? ""),
@@ -65,6 +67,22 @@ function sortNotes(notes, direction = "future") {
   return sorted;
 }
 
+function normalizeStoredNote(note) {
+  if (!note) return note;
+  const defaults = CalendarService.getDefaultNoteDateTime();
+  const startDate = note.startDate ?? defaults.date;
+  const startTime = note.startTime ?? defaults.time;
+
+  return {
+    ...note,
+    hasEnd: Boolean(note.hasEnd),
+    endDate: note.endDate ?? startDate,
+    endTime: note.endTime ?? startTime,
+    startDate,
+    startTime
+  };
+}
+
 export class TimelineNoteStore {
   static registerSettings() {
     game.settings.register(MODULE_ID, SETTINGS.DEVELOPMENT_NOTES, {
@@ -80,7 +98,7 @@ export class TimelineNoteStore {
 
   static list({ user = game.user, query = "", direction = "future" } = {}) {
     const normalizedQuery = query.trim().toLocaleLowerCase();
-    const notes = getStoredNotes().filter((note) => {
+    const notes = getStoredNotes().map(normalizeStoredNote).filter((note) => {
       if (!TimelineNotePermissions.canView(note, user)) return false;
       if (!normalizedQuery) return true;
 
@@ -91,7 +109,7 @@ export class TimelineNoteStore {
   }
 
   static get(id, { user = game.user } = {}) {
-    const note = getStoredNotes().find((candidate) => candidate.id === id);
+    const note = normalizeStoredNote(getStoredNotes().find((candidate) => candidate.id === id));
     if (!TimelineNotePermissions.canView(note, user)) return null;
 
     return note;

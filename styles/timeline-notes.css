@@ -97,6 +97,19 @@
   opacity: 0.75;
 }
 
+.timeline-notes-card__marker {
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  line-height: 1;
+  padding: 0.15rem 0.25rem;
+  text-transform: uppercase;
+}
+
+.timeline-notes-card__marker--end {
+  opacity: 0.75;
+}
+
 .timeline-notes-card strong {
   text-align: right;
 }
@@ -155,6 +168,20 @@
 .timeline-note-window__form fieldset {
   display: grid;
   gap: 0.25rem;
+}
+
+.timeline-note-window__dates {
+  grid-template-columns: 1fr 1fr;
+}
+
+.timeline-note-window__dates legend,
+.timeline-note-window__checkbox {
+  grid-column: 1 / -1;
+}
+
+.timeline-note-window__checkbox {
+  align-items: center;
+  display: flex;
 }
 
 .timeline-note-window prose-mirror {

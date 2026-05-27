@@ -78,3 +78,5 @@ Version `0.1.8` adds a store change hook so the sidebar updates when notes are s
 Version `0.1.9` replaces the temporary textarea with Foundry's ProseMirror custom element and renders note view mode through Foundry text enrichment so document links resolve correctly.
 
 Version `0.1.10` orders the Timeline sidebar tab immediately after Journal.
+
+Version `0.1.11` adds editable note start/end date and time fields. Notes with an end date render at both start and end positions in the timeline with a start/end indicator.

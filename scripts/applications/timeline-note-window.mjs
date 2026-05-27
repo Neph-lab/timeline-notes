@@ -21,6 +21,24 @@ function getProseMirrorContent(form) {
   return String(value ?? "");
 }
 
+function formatDateInput(date) {
+  return CalendarService.formatDate(date);
+}
+
+function formatTimeInput(time) {
+  return CalendarService.formatTime(time);
+}
+
+function parseDateInput(value) {
+  const [year, month, day] = String(value).split("-").map(Number);
+  return { year, month, day };
+}
+
+function parseTimeInput(value) {
+  const [hour = 0, minute = 0, second = 0] = String(value).split(":").map(Number);
+  return { hour, minute, second };
+}
+
 function visibilityOptions(selected) {
   return Object.entries({
     [VISIBILITY.PRIVATE]: "TIMELINE_NOTES.Visibility.Private",
@@ -107,7 +125,10 @@ export class TimelineNoteWindow extends foundry.applications.api.ApplicationV2 {
     return `
       <header class="timeline-note-window__header">
         <h2>${escapeHTML(note.name)}</h2>
-        <div class="timeline-note-window__date">${escapeHTML(CalendarService.formatDateTime({ date: note.startDate, time: note.startTime }))}</div>
+        <div class="timeline-note-window__date">
+          ${escapeHTML(CalendarService.formatDateTime({ date: note.startDate, time: note.startTime }))}
+          ${note.hasEnd ? ` - ${escapeHTML(CalendarService.formatDateTime({ date: note.endDate, time: note.endTime }))}` : ""}
+        </div>
       </header>
       <article class="timeline-note-window__body">${enriched || `<p>${game.i18n.localize("TIMELINE_NOTES.Note.EmptyContent")}</p>`}</article>
       <footer class="timeline-note-window__footer">
@@ -130,6 +151,32 @@ export class TimelineNoteWindow extends foundry.applications.api.ApplicationV2 {
           <span>${game.i18n.localize("TIMELINE_NOTES.Field.Name")}</span>
           <input type="text" name="name" value="${escapeHTML(note.name)}">
         </label>
+        <fieldset class="timeline-note-window__dates">
+          <legend>${game.i18n.localize("TIMELINE_NOTES.Field.Start")}</legend>
+          <label>
+            <span>${game.i18n.localize("TIMELINE_NOTES.Field.Date")}</span>
+            <input type="date" name="startDate" value="${escapeHTML(formatDateInput(note.startDate))}">
+          </label>
+          <label>
+            <span>${game.i18n.localize("TIMELINE_NOTES.Field.Time")}</span>
+            <input type="time" name="startTime" step="1" value="${escapeHTML(formatTimeInput(note.startTime))}">
+          </label>
+        </fieldset>
+        <fieldset class="timeline-note-window__dates">
+          <legend>${game.i18n.localize("TIMELINE_NOTES.Field.End")}</legend>
+          <label class="timeline-note-window__checkbox">
+            <input type="checkbox" name="hasEnd" ${note.hasEnd ? "checked" : ""}>
+            <span>${game.i18n.localize("TIMELINE_NOTES.Field.HasEnd")}</span>
+          </label>
+          <label>
+            <span>${game.i18n.localize("TIMELINE_NOTES.Field.Date")}</span>
+            <input type="date" name="endDate" value="${escapeHTML(formatDateInput(note.endDate ?? note.startDate))}">
+          </label>
+          <label>
+            <span>${game.i18n.localize("TIMELINE_NOTES.Field.Time")}</span>
+            <input type="time" name="endTime" step="1" value="${escapeHTML(formatTimeInput(note.endTime ?? note.startTime))}">
+          </label>
+        </fieldset>
         <div class="timeline-note-window__editor">
           <span>${game.i18n.localize("TIMELINE_NOTES.Field.Content")}</span>
           <prose-mirror
@@ -160,6 +207,11 @@ export class TimelineNoteWindow extends foundry.applications.api.ApplicationV2 {
     const data = new FormData(form);
     await TimelineNoteStore.update(this.noteId, {
       name: data.get("name"),
+      startDate: parseDateInput(data.get("startDate")),
+      startTime: parseTimeInput(data.get("startTime")),
+      hasEnd: data.has("hasEnd"),
+      endDate: parseDateInput(data.get("endDate")),
+      endTime: parseTimeInput(data.get("endTime")),
       content: getProseMirrorContent(form),
       visibility: data.get("visibility")
     });

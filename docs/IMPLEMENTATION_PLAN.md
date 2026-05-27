@@ -82,6 +82,8 @@ Editor note: version `0.1.9` uses Foundry's `<prose-mirror>` editor element in n
 
 Sidebar order note: version `0.1.10` inserts the Timeline tab immediately after Foundry's Journal tab instead of appending it to the end of the sidebar.
 
+Timeline placement note: version `0.1.11` adds editable start/end date and time fields. The sidebar derives timeline entries from notes, rendering a start entry for every note and an end entry when `hasEnd` is enabled.
+
 ## Permission Model
 
 - GMs can view, update, and delete all notes.

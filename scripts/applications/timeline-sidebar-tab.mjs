@@ -28,14 +28,31 @@ function getMonthLabel(month) {
   return date.toLocaleString(game.i18n.lang, { month: "long", timeZone: "UTC" });
 }
 
-function prepareNote(note) {
+function prepareTimelineEntry(note, type) {
+  const isEnd = type === "end";
+  const date = isEnd ? note.endDate : note.startDate;
+  const time = isEnd ? note.endTime : note.startTime;
+
   return {
     ...note,
     canDelete: TimelineNotePermissions.canDelete(note),
     canEdit: TimelineNotePermissions.canEdit(note),
-    dateTime: CalendarService.formatDateTime({ date: note.startDate, time: note.startTime }),
+    dateTime: CalendarService.formatDateTime({ date, time }),
+    entryDate: date,
+    entryTime: time,
+    entryType: type,
+    entryTypeLabel: game.i18n.localize(isEnd ? "TIMELINE_NOTES.Entry.End" : "TIMELINE_NOTES.Entry.Start"),
+    key: `${note.id}-${type}`,
     preview: getPreview(note.content) || game.i18n.localize("TIMELINE_NOTES.Note.EmptyContent")
   };
+}
+
+function prepareTimelineEntries(notes) {
+  return notes.flatMap((note) => {
+    const entries = [prepareTimelineEntry(note, "start")];
+    if (note.hasEnd) entries.push(prepareTimelineEntry(note, "end"));
+    return entries;
+  }).filter((entry) => entry.entryDate && entry.entryTime);
 }
 
 function groupNotes(notes) {
@@ -45,9 +62,9 @@ function groupNotes(notes) {
   let currentDay = null;
 
   for (const note of notes) {
-    const year = note.startDate.year;
-    const month = note.startDate.month;
-    const day = note.startDate.day;
+    const year = note.entryDate.year;
+    const month = note.entryDate.month;
+    const day = note.entryDate.day;
 
     if (!currentYear || currentYear.year !== year) {
       currentYear = { year, months: [] };
@@ -125,8 +142,15 @@ export class TimelineSidebarTab extends HandlebarsApplicationMixin(AbstractSideb
   }
 
   async _prepareContext(options) {
-    const notes = TimelineNoteStore.list({ query: this.query, direction: this.direction }).map(prepareNote);
-    const groups = groupNotes(notes);
+    const notes = TimelineNoteStore.list({ query: this.query, direction: this.direction });
+    const entries = prepareTimelineEntries(notes).sort((left, right) => {
+      const order = CalendarService.compareDateTimes(
+        { date: left.entryDate, time: left.entryTime },
+        { date: right.entryDate, time: right.entryTime }
+      );
+      return this.direction === "oldest" ? order : -order;
+    });
+    const groups = groupNotes(entries);
     const current = CalendarService.getCurrentDateTime();
 
     return {
@@ -134,7 +158,7 @@ export class TimelineSidebarTab extends HandlebarsApplicationMixin(AbstractSideb
       currentDateTime: CalendarService.formatDateTime(current),
       direction: this.direction,
       groups,
-      hasNotes: notes.length > 0,
+      hasNotes: entries.length > 0,
       isGM: game.user.isGM,
       orderLabel: this.direction === "future"
         ? game.i18n.localize("TIMELINE_NOTES.Action.FutureFirst")
@@ -201,7 +225,9 @@ export class TimelineSidebarTab extends HandlebarsApplicationMixin(AbstractSideb
       const target = cards.find((card) => {
         const note = TimelineNoteStore.get(card.dataset.noteId);
         if (!note) return false;
-        const noteKey = CalendarService.toSortKey({ date: note.startDate, time: note.startTime });
+        const date = card.dataset.entryType === "end" ? note.endDate : note.startDate;
+        const time = card.dataset.entryType === "end" ? note.endTime : note.startTime;
+        const noteKey = CalendarService.toSortKey({ date, time });
         return this.direction === "future" ? noteKey <= targetKey : noteKey >= targetKey;
       });
 
