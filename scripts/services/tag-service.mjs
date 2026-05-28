@@ -39,7 +39,13 @@ export class TagService {
 
   static list() {
     const value = game.settings.get(MODULE_ID, SETTINGS.TAGS);
-    return Array.isArray(value) ? foundry.utils.deepClone(value) : [];
+    const all = Array.isArray(value) ? foundry.utils.deepClone(value) : [];
+    const seen = new Set();
+    return all.filter((t) => {
+      if (!t.id || seen.has(t.id)) return false;
+      seen.add(t.id);
+      return true;
+    });
   }
 
   static get(id) {

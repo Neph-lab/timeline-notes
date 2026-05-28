@@ -351,6 +351,7 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
 }
 
 .timeline-note-window prose-mirror {

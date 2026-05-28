@@ -49,7 +49,7 @@ function normalizeNoteData(data = {}, existing = null) {
     content: String(data.content ?? existing?.content ?? ""),
     visibility: normalizeVisibility(data.visibility ?? existing?.visibility),
     calendarId,
-    tags: Array.isArray(data.tags) ? [...data.tags] : (existing?.tags ?? []),
+    tags: [...new Set(Array.isArray(data.tags) ? data.tags : (existing?.tags ?? []))],
     createdTime: existing?.createdTime ?? now,
     updatedTime: now
   };
@@ -81,7 +81,7 @@ function normalizeStoredNote(note) {
     endTime: note.endTime ?? startTime,
     startDate,
     startTime,
-    tags: Array.isArray(note.tags) ? note.tags : []
+    tags: [...new Set(Array.isArray(note.tags) ? note.tags : [])]
   };
 }
 
