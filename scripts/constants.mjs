@@ -5,7 +5,6 @@ export const DOCUMENT_NAME = "TimelineNote";
 export const COLLECTION_NAME = "timelineNotes";
 
 export const SETTINGS = {
-  ENABLE_PRIMARY_DOCUMENT_SPIKE: "enablePrimaryDocumentSpike",
   CAMPAIGN_CALENDAR_ID: "campaignCalendarId",
   CAMPAIGN_CURRENT_DATE: "campaignCurrentDate",
   CAMPAIGN_CURRENT_TIME: "campaignCurrentTime",
