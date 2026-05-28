@@ -64,7 +64,7 @@ export class TimelineNoteWindow extends foundry.applications.api.ApplicationV2 {
     },
     position: {
       width: 520,
-      height: "auto"
+      height: 500
     }
   };
 
@@ -74,7 +74,7 @@ export class TimelineNoteWindow extends foundry.applications.api.ApplicationV2 {
       ...options
     });
     this.noteId = noteId;
-    this.editing = false;
+    this.editing = options.editing ?? false;
   }
 
   get note() {
@@ -187,9 +187,7 @@ export class TimelineNoteWindow extends foundry.applications.api.ApplicationV2 {
           <span>${game.i18n.localize("TIMELINE_NOTES.Field.Content")}</span>
           <prose-mirror
             name="content"
-            button="true"
             editable="true"
-            toggled="true"
             value="${escapeHTML(note.content ?? "")}">
             ${enriched}
           </prose-mirror>

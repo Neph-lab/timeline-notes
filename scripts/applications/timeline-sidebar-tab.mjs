@@ -39,7 +39,9 @@ function prepareTimelineEntry(note, type) {
     entryDate: date,
     entryTime: time,
     entryType: type,
-    entryTypeLabel: isEnd ? game.i18n.localize("TIMELINE_NOTES.Entry.End") : "",
+    entryTypeLabel: isEnd ? game.i18n.localize("TIMELINE_NOTES.Entry.End")
+      : note.hasEnd ? game.i18n.localize("TIMELINE_NOTES.Entry.Start")
+      : "",
     key: `${note.id}-${type}`,
     preview: getPreview(note.content) || game.i18n.localize("TIMELINE_NOTES.Note.EmptyContent")
   };
@@ -83,6 +85,15 @@ function groupNotes(notes) {
     }
 
     currentDay.notes.push(note);
+  }
+
+  for (const year of years) {
+    const yearTotal = year.months.reduce((sum, mo) => sum + mo.days.reduce((s, d) => s + d.notes.length, 0), 0);
+    year.showMonthHeaders = yearTotal > 1;
+    for (const month of year.months) {
+      const monthTotal = month.days.reduce((sum, d) => sum + d.notes.length, 0);
+      month.showDayHeaders = monthTotal > 1;
+    }
   }
 
   return years;
@@ -199,7 +210,7 @@ export class TimelineSidebarTab extends HandlebarsApplicationMixin(AbstractSideb
         content: "<p></p>"
       });
       await this.render({ force: true });
-      new TimelineNoteWindow(note.id).render({ force: true });
+      new TimelineNoteWindow(note.id, { editing: true }).render({ force: true });
     });
 
     root.querySelector("[data-action='jump-date']")?.addEventListener("click", async () => {

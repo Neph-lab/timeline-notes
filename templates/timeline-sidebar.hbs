@@ -27,20 +27,18 @@
           <h2>{{year}}</h2>
           {{#each months}}
             <section class="timeline-notes-month">
-              <h3>{{label}}</h3>
+              {{#if ../showMonthHeaders}}<h3>{{label}}</h3>{{/if}}
               {{#each days}}
                 <section class="timeline-notes-day">
-                  <h4>{{day}}</h4>
+                  {{#if ../showDayHeaders}}<h4>{{day}}</h4>{{/if}}
                   {{#each notes}}
-                    <article class="timeline-notes-card" data-note-id="{{id}}" data-entry-type="{{entryType}}">
+                    <article class="timeline-notes-card" data-action="open-note" data-note-id="{{id}}" data-entry-type="{{entryType}}">
                       <header>
                         <time>{{dateTime}}</time>
                         {{#if entryTypeLabel}}
                           <span class="timeline-notes-card__marker timeline-notes-card__marker--{{entryType}}">{{entryTypeLabel}}</span>
                         {{/if}}
-                        <button type="button" class="timeline-notes-card__title" data-action="open-note" data-note-id="{{id}}">
-                          {{name}}
-                        </button>
+                        <span class="timeline-notes-card__title">{{name}}</span>
                       </header>
                       <p class="timeline-notes-card__preview">
                         {{preview}}

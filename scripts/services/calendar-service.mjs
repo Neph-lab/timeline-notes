@@ -188,7 +188,28 @@ export class CalendarService {
   }
 
   static formatDateTime({ date, time }) {
-    return `${this.formatDate(date)} ${this.formatTime(time)}`;
+    const y = Number(date?.year ?? 0);
+    const mo = Number(date?.month ?? 0);
+    const d = Number(date?.day ?? 0);
+    const h = Number(time?.hour ?? 0);
+    const m = Number(time?.minute ?? 0);
+    const s = Number(time?.second ?? 0);
+
+    let dateStr;
+    if (d <= 0) {
+      dateStr = mo <= 0 ? pad(y, 4) : `${pad(y, 4)}-${pad(mo)}`;
+    } else {
+      dateStr = `${pad(y, 4)}-${pad(mo)}-${pad(d)}`;
+    }
+
+    let timeStr = "";
+    if (h !== 0 || m !== 0 || s !== 0) {
+      timeStr = s !== 0 ? `${pad(h)}:${pad(m)}:${pad(s)}`
+        : m !== 0 ? `${pad(h)}:${pad(m)}`
+        : pad(h);
+    }
+
+    return timeStr ? `${dateStr} ${timeStr}` : dateStr;
   }
 
   static compareDateTimes(left, right) {
