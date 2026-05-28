@@ -395,7 +395,7 @@
 }
 
 /* Tag settings dialog */
-.timeline-notes-tag-settings .window-content {
+.timeline-notes-tag-settings__root {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
