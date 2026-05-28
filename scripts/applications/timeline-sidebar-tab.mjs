@@ -2,6 +2,7 @@ import { MODULE_ID } from "../constants.mjs";
 import { CalendarService } from "../services/calendar-service.mjs";
 import { TimelineNotePermissions } from "../services/permissions.mjs";
 import { TimelineNoteStore } from "../services/note-store.mjs";
+import { TagService, getAuthorDisplay } from "../services/tag-service.mjs";
 import { TimelineNoteWindow } from "./timeline-note-window.mjs";
 
 const { AbstractSidebarTab } = foundry.applications.sidebar;
@@ -32,6 +33,9 @@ function prepareTimelineEntry(note, type) {
   const isEnd = type === "end";
   const date = isEnd ? note.endDate : note.startDate;
   const time = isEnd ? note.endTime : note.startTime;
+  const authorBar = getAuthorDisplay(note.author);
+  const canEdit = TimelineNotePermissions.canEdit(note);
+  const resolvedTags = TagService.resolveTags(note.tags ?? []);
 
   return {
     ...note,
@@ -43,7 +47,10 @@ function prepareTimelineEntry(note, type) {
       : note.hasEnd ? game.i18n.localize("TIMELINE_NOTES.Entry.Start")
       : "",
     key: `${note.id}-${type}`,
-    preview: getPreview(note.content) || game.i18n.localize("TIMELINE_NOTES.Note.EmptyContent")
+    preview: getPreview(note.content) || game.i18n.localize("TIMELINE_NOTES.Note.EmptyContent"),
+    authorBar,
+    canEdit,
+    resolvedTags
   };
 }
 
@@ -143,15 +150,17 @@ export class TimelineSidebarTab extends HandlebarsApplicationMixin(AbstractSideb
     super(options);
     this.query = "";
     this.direction = "future";
+    this.selectedTags = [];
+    this.tagFilterOpen = false;
     Hooks.on(TimelineNoteStore.NOTES_CHANGED_HOOK, this.#handleNotesChanged);
   }
 
   #handleNotesChanged = () => {
-      if (this.rendered) this.render({ force: true });
+    if (this.rendered) this.render({ force: true });
   }
 
   async _prepareContext(options) {
-    const notes = TimelineNoteStore.list({ query: this.query, direction: this.direction });
+    const notes = TimelineNoteStore.list({ query: this.query, direction: this.direction, tags: this.selectedTags });
     const entries = prepareTimelineEntries(notes).sort((left, right) => {
       const order = CalendarService.compareDateTimes(
         { date: left.entryDate, time: left.entryTime },
@@ -161,9 +170,11 @@ export class TimelineSidebarTab extends HandlebarsApplicationMixin(AbstractSideb
     });
     const groups = groupNotes(entries);
     const current = CalendarService.getCurrentDateTime();
+    const allTags = TagService.list().map((t) => ({ ...t, selected: this.selectedTags.includes(t.id) }));
 
     return {
       ...(await super._prepareContext(options)),
+      allTags,
       currentDateTime: CalendarService.formatDateTime(current),
       direction: this.direction,
       groups,
@@ -172,12 +183,17 @@ export class TimelineSidebarTab extends HandlebarsApplicationMixin(AbstractSideb
       orderLabel: this.direction === "future"
         ? game.i18n.localize("TIMELINE_NOTES.Action.FutureFirst")
         : game.i18n.localize("TIMELINE_NOTES.Action.OldestFirst"),
-      query: this.query
+      query: this.query,
+      tagFilterOpen: this.tagFilterOpen
     };
   }
 
   async _onRender(context, options) {
     await super._onRender(context, options);
+
+    const filterPanel = this.element.querySelector(".timeline-notes-tag-filter");
+    if (filterPanel) filterPanel.hidden = !this.tagFilterOpen;
+
     this.#activateListeners(this.element);
 
     console.debug(`${MODULE_ID} | Rendered timeline sidebar`, {
@@ -189,7 +205,6 @@ export class TimelineSidebarTab extends HandlebarsApplicationMixin(AbstractSideb
 
   async close(options) {
     Hooks.off(TimelineNoteStore.NOTES_CHANGED_HOOK, this.#handleNotesChanged);
-
     return super.close(options);
   }
 
@@ -202,6 +217,19 @@ export class TimelineSidebarTab extends HandlebarsApplicationMixin(AbstractSideb
     root.querySelector("[data-action='toggle-order']")?.addEventListener("click", () => {
       this.direction = this.direction === "future" ? "oldest" : "future";
       this.render({ force: true });
+    });
+
+    root.querySelector("[data-action='toggle-tag-filter']")?.addEventListener("click", () => {
+      this.tagFilterOpen = !this.tagFilterOpen;
+      const panel = root.querySelector(".timeline-notes-tag-filter");
+      if (panel) panel.hidden = !this.tagFilterOpen;
+    });
+
+    root.querySelectorAll("[name='tagFilter']").forEach((checkbox) => {
+      checkbox.addEventListener("change", () => {
+        this.selectedTags = [...root.querySelectorAll("[name='tagFilter']:checked")].map((el) => el.value);
+        this.render({ force: true });
+      });
     });
 
     root.querySelector("[data-action='create-note']")?.addEventListener("click", async () => {

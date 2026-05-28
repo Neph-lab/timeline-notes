@@ -9,8 +9,15 @@ export const SETTINGS = {
   CAMPAIGN_CALENDAR_ID: "campaignCalendarId",
   CAMPAIGN_CURRENT_DATE: "campaignCurrentDate",
   CAMPAIGN_CURRENT_TIME: "campaignCurrentTime",
-  DEVELOPMENT_NOTES: "developmentNotes"
+  DEVELOPMENT_NOTES: "developmentNotes",
+  TAGS: "tags"
 };
+
+export const DEFAULT_TAGS = [
+  { id: "combat",   name: "Combat",   color: "#c0392b" },
+  { id: "shopping", name: "Shopping", color: "#27ae60" },
+  { id: "funny",    name: "Funny",    color: "#f1c40f" }
+];
 
 export const DEFAULT_CALENDAR_ID = "gregorian";
 

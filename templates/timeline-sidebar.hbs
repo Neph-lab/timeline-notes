@@ -16,7 +16,25 @@
         <i class="fa-solid fa-arrow-down-wide-short"></i>
       </button>
     </div>
-    <input type="search" name="query" value="{{query}}" placeholder="{{localize "TIMELINE_NOTES.Action.Filter"}}">
+    <div class="timeline-notes-toolbar__search">
+      <input type="search" name="query" value="{{query}}" placeholder="{{localize "TIMELINE_NOTES.Action.Filter"}}">
+      <button type="button" data-action="toggle-tag-filter" title="{{localize "TIMELINE_NOTES.Action.FilterTags"}}" class="{{#if selectedTags.length}}timeline-notes-toolbar__filter-active{{/if}}">
+        <i class="fa-solid fa-tags"></i>
+      </button>
+      <div class="timeline-notes-tag-filter" hidden>
+        {{#if allTags.length}}
+          {{#each allTags}}
+            <label class="timeline-notes-tag-filter__option">
+              <input type="checkbox" name="tagFilter" value="{{id}}" {{#if selected}}checked{{/if}}>
+              <span class="timeline-notes-tag-filter__swatch" style="background:{{color}}"></span>
+              <span>{{name}}</span>
+            </label>
+          {{/each}}
+        {{else}}
+          <p class="timeline-notes-tag-filter__empty">{{localize "TIMELINE_NOTES.TagFilter.Empty"}}</p>
+        {{/if}}
+      </div>
+    </div>
     <p>{{currentDateTime}}</p>
   </header>
 
@@ -33,16 +51,22 @@
                   {{#if ../showDayHeaders}}<h4>{{day}}</h4>{{/if}}
                   {{#each notes}}
                     <article class="timeline-notes-card" data-action="open-note" data-note-id="{{id}}" data-entry-type="{{entryType}}">
-                      <header>
-                        <time>{{dateTime}}</time>
-                        {{#if entryTypeLabel}}
-                          <span class="timeline-notes-card__marker timeline-notes-card__marker--{{entryType}}">{{entryTypeLabel}}</span>
-                        {{/if}}
-                        <span class="timeline-notes-card__title">{{name}}</span>
-                      </header>
-                      <p class="timeline-notes-card__preview">
-                        {{preview}}
-                      </p>
+                      <div class="timeline-notes-card__authorline{{#unless canEdit}} timeline-notes-card__authorline--split{{/unless}}" style="--author-color:{{authorBar.color}}"></div>
+                      <div class="timeline-notes-card__content">
+                        <header>
+                          <time>{{dateTime}}</time>
+                          {{#if entryTypeLabel}}
+                            <span class="timeline-notes-card__marker timeline-notes-card__marker--{{entryType}}">{{entryTypeLabel}}</span>
+                          {{/if}}
+                          <span class="timeline-notes-card__title">{{name}}</span>
+                        </header>
+                        <p class="timeline-notes-card__preview">{{preview}}</p>
+                      </div>
+                      <div class="timeline-notes-card__tagstack">
+                        {{#each resolvedTags}}
+                          <span class="timeline-notes-card__tagline" style="background:{{color}}" title="{{name}}"></span>
+                        {{/each}}
+                      </div>
                     </article>
                   {{/each}}
                 </section>

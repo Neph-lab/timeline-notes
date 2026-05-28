@@ -1,0 +1,24 @@
+<div class="timeline-notes-tag-settings__list">
+  {{#if tags.length}}
+    {{#each tags}}
+      <div class="timeline-notes-tag-settings__row" data-tag-id="{{id}}">
+        <input type="color" name="color" value="{{color}}" title="{{localize "TIMELINE_NOTES.TagSettings.TagColor"}}">
+        <input type="text" name="name" value="{{name}}" placeholder="{{localize "TIMELINE_NOTES.TagSettings.TagName"}}">
+        <button type="button" data-action="delete-tag" data-tag-id="{{id}}" title="{{localize "TIMELINE_NOTES.TagSettings.Delete"}}">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </div>
+    {{/each}}
+  {{else}}
+    <p class="timeline-notes-tag-settings__empty">{{localize "TIMELINE_NOTES.TagSettings.Empty"}}</p>
+  {{/if}}
+</div>
+
+<footer class="timeline-notes-tag-settings__footer">
+  <button type="button" data-action="add-tag">
+    <i class="fa-solid fa-plus"></i> {{localize "TIMELINE_NOTES.TagSettings.AddTag"}}
+  </button>
+  <button type="button" data-action="save-tags" class="timeline-notes-tag-settings__save">
+    <i class="fa-solid fa-floppy-disk"></i> {{localize "TIMELINE_NOTES.TagSettings.Save"}}
+  </button>
+</footer>

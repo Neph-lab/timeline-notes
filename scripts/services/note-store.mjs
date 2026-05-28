@@ -49,6 +49,7 @@ function normalizeNoteData(data = {}, existing = null) {
     content: String(data.content ?? existing?.content ?? ""),
     visibility: normalizeVisibility(data.visibility ?? existing?.visibility),
     calendarId,
+    tags: Array.isArray(data.tags) ? [...data.tags] : (existing?.tags ?? []),
     createdTime: existing?.createdTime ?? now,
     updatedTime: now
   };
@@ -79,7 +80,8 @@ function normalizeStoredNote(note) {
     endDate: note.endDate ?? startDate,
     endTime: note.endTime ?? startTime,
     startDate,
-    startTime
+    startTime,
+    tags: Array.isArray(note.tags) ? note.tags : []
   };
 }
 
@@ -96,13 +98,13 @@ export class TimelineNoteStore {
     });
   }
 
-  static list({ user = game.user, query = "", direction = "future" } = {}) {
+  static list({ user = game.user, query = "", direction = "future", tags = [] } = {}) {
     const normalizedQuery = query.trim().toLocaleLowerCase();
     const notes = getStoredNotes().map(normalizeStoredNote).filter((note) => {
       if (!TimelineNotePermissions.canView(note, user)) return false;
-      if (!normalizedQuery) return true;
-
-      return `${note.name} ${note.content}`.toLocaleLowerCase().includes(normalizedQuery);
+      if (normalizedQuery && !`${note.name} ${note.content}`.toLocaleLowerCase().includes(normalizedQuery)) return false;
+      if (tags.length > 0 && !note.tags.some((t) => tags.includes(t))) return false;
+      return true;
     });
 
     return sortNotes(notes, direction);
@@ -137,6 +139,21 @@ export class TimelineNoteStore {
     await setStoredNotes(notes);
     notifyNotesChanged("update", updated);
     return updated;
+  }
+
+  static async removeTagFromAll(tagId) {
+    const notes = getStoredNotes();
+    let changed = false;
+    for (const note of notes) {
+      if (Array.isArray(note.tags) && note.tags.includes(tagId)) {
+        note.tags = note.tags.filter((t) => t !== tagId);
+        changed = true;
+      }
+    }
+    if (changed) {
+      await setStoredNotes(notes);
+      notifyNotesChanged("update");
+    }
   }
 
   static async delete(id, { user = game.user } = {}) {
