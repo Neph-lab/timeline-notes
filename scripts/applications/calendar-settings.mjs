@@ -3,18 +3,33 @@ import { CalendarService } from "../services/calendar-service.mjs";
 
 const { HandlebarsApplicationMixin, ApplicationV2, DialogV2 } = foundry.applications.api;
 
+// Localize names that may be i18n keys (Foundry's Gregorian config uses keys
+// like "GREGORIAN.MONTH.January"). localize() returns the input unchanged when
+// it is not a registered key, so plain custom names pass through untouched.
+function localizeName(value) {
+  const str = String(value ?? "");
+  return str ? game.i18n.localize(str) : "";
+}
+
 // Convert a Foundry CalendarConfig into the flat shape the editor works with.
 function configToEditor(config) {
   const days = config?.days ?? {};
   const months = Array.isArray(config?.months?.values) ? config.months.values : [];
   const weekdays = Array.isArray(days.values) ? days.values : [];
+  const leap = config?.years?.leapYear ?? null;
   return {
-    name: config?.name ?? "Custom Calendar",
+    name: localizeName(config?.name) || "Custom Calendar",
     hoursPerDay: Number(days.hoursPerDay) || 24,
     minutesPerHour: Number(days.minutesPerHour) || 60,
     secondsPerMinute: Number(days.secondsPerMinute) || 60,
-    months: months.map((m) => ({ name: m?.name ?? "", days: Number(m?.days) || 1 })),
-    weekdays: weekdays.map((w) => (typeof w === "string" ? w : (w?.name ?? "")))
+    hasLeapYear: Boolean(leap),
+    leapInterval: Number(leap?.leapInterval) || 4,
+    leapStart: Number(leap?.leapStart) || 0,
+    months: months.map((m) => {
+      const d = Number(m?.days) || 1;
+      return { name: localizeName(m?.name), days: d, leapDays: Number(m?.leapDays ?? d) || d };
+    }),
+    weekdays: weekdays.map((w) => localizeName(typeof w === "string" ? w : w?.name))
   };
 }
 
@@ -23,6 +38,7 @@ function editorToConfig(model) {
   const months = (model.months ?? []).filter((m) => (m.name ?? "").trim() !== "" || Number(m.days) > 0);
   const weekdays = (model.weekdays ?? []).filter((w) => (w ?? "").trim() !== "");
   const daysPerYear = months.reduce((sum, m) => sum + (Number(m.days) || 0), 0);
+  const hasLeap = Boolean(model.hasLeapYear);
 
   return {
     name: (model.name ?? "").trim() || "Custom Calendar",
@@ -38,11 +54,18 @@ function editorToConfig(model) {
       ? {
         values: months.map((m, i) => {
           const d = Math.max(1, Number(m.days) || 1);
-          return { name: (m.name ?? "").trim() || `Month ${i + 1}`, days: d, ordinal: i + 1, leapDays: d };
+          const leapDays = hasLeap ? Math.max(1, Number(m.leapDays) || d) : d;
+          return { name: (m.name ?? "").trim() || `Month ${i + 1}`, days: d, ordinal: i + 1, leapDays };
         })
       }
       : null,
-    years: { yearZero: 0, firstWeekday: 0, leapYear: null },
+    years: {
+      yearZero: 0,
+      firstWeekday: 0,
+      leapYear: hasLeap
+        ? { leapStart: Number(model.leapStart) || 0, leapInterval: Math.max(1, Number(model.leapInterval) || 4) }
+        : null
+    },
     seasons: null
   };
 }
@@ -79,9 +102,14 @@ export class CalendarSettingsApp extends HandlebarsApplicationMixin(ApplicationV
       ...(await super._prepareContext(options)),
       config: {
         ...this.workingConfig,
-        months: this.workingConfig.months.map((m, i) => ({ ...m, ordinal: i + 1 }))
+        months: this.workingConfig.months.map((m, i) => ({ ...m, ordinal: i + 1, hasLeapYear: this.workingConfig.hasLeapYear }))
       }
     };
+  }
+
+  #onLeapToggle() {
+    this.#syncFromDOM();
+    this.render({ force: true });
   }
 
   async _onRender(context, options) {
@@ -124,6 +152,8 @@ export class CalendarSettingsApp extends HandlebarsApplicationMixin(ApplicationV
       });
     });
 
+    root.querySelector("input[name='hasLeapYear']")?.addEventListener("change", () => this.#onLeapToggle());
+
     root.querySelector("[data-action='reset-gregorian']")?.addEventListener("click", () => this.#reset());
     root.querySelector("[data-action='save-calendar']")?.addEventListener("click", () => this.#save());
   }
@@ -144,11 +174,19 @@ export class CalendarSettingsApp extends HandlebarsApplicationMixin(ApplicationV
     const hoursPerDay = root.querySelector("input[name='hoursPerDay']")?.value;
     const minutesPerHour = root.querySelector("input[name='minutesPerHour']")?.value;
     const secondsPerMinute = root.querySelector("input[name='secondsPerMinute']")?.value;
+    const hasLeapYear = root.querySelector("input[name='hasLeapYear']")?.checked ?? false;
+    const leapInterval = root.querySelector("input[name='leapInterval']")?.value;
+    const leapStart = root.querySelector("input[name='leapStart']")?.value;
 
-    const months = [...root.querySelectorAll("[data-month-row]")].map((row) => ({
-      name: row.querySelector("input[name='monthName']")?.value ?? "",
-      days: Number(row.querySelector("input[name='monthDays']")?.value) || 1
-    }));
+    const months = [...root.querySelectorAll("[data-month-row]")].map((row) => {
+      const days = Number(row.querySelector("input[name='monthDays']")?.value) || 1;
+      const leapEl = row.querySelector("input[name='monthLeapDays']");
+      return {
+        name: row.querySelector("input[name='monthName']")?.value ?? "",
+        days,
+        leapDays: leapEl ? (Number(leapEl.value) || days) : days
+      };
+    });
 
     const weekdays = [...root.querySelectorAll("[data-weekday-row]")].map(
       (row) => row.querySelector("input[name='weekdayName']")?.value ?? ""
@@ -159,6 +197,9 @@ export class CalendarSettingsApp extends HandlebarsApplicationMixin(ApplicationV
       hoursPerDay: Number(hoursPerDay) || 24,
       minutesPerHour: Number(minutesPerHour) || 60,
       secondsPerMinute: Number(secondsPerMinute) || 60,
+      hasLeapYear,
+      leapInterval: Number(leapInterval) || 4,
+      leapStart: Number(leapStart) || 0,
       months,
       weekdays
     };

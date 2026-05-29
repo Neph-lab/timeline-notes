@@ -22,6 +22,27 @@
     </label>
   </fieldset>
 
+  <fieldset class="timeline-notes-calendar-settings__leap">
+    <legend>{{localize "TIMELINE_NOTES.CalendarSettings.LeapYears"}}</legend>
+    <label class="timeline-notes-calendar-settings__leap-toggle">
+      <input type="checkbox" name="hasLeapYear" {{#if config.hasLeapYear}}checked{{/if}}>
+      <span>{{localize "TIMELINE_NOTES.CalendarSettings.HasLeapYear"}}</span>
+    </label>
+    {{#if config.hasLeapYear}}
+      <div class="timeline-notes-calendar-settings__leap-fields">
+        <label>
+          <span>{{localize "TIMELINE_NOTES.CalendarSettings.LeapInterval"}}</span>
+          <input type="number" name="leapInterval" value="{{config.leapInterval}}" min="1">
+        </label>
+        <label>
+          <span>{{localize "TIMELINE_NOTES.CalendarSettings.LeapStart"}}</span>
+          <input type="number" name="leapStart" value="{{config.leapStart}}">
+        </label>
+      </div>
+      <p class="timeline-notes-calendar-settings__leap-hint">{{localize "TIMELINE_NOTES.CalendarSettings.LeapHint"}}</p>
+    {{/if}}
+  </fieldset>
+
   <fieldset class="timeline-notes-calendar-settings__months">
     <legend>{{localize "TIMELINE_NOTES.CalendarSettings.Months"}}</legend>
     <div class="timeline-notes-calendar-settings__month-list">
@@ -30,6 +51,9 @@
           <span class="timeline-notes-calendar-settings__ordinal">{{ordinal}}</span>
           <input type="text" name="monthName" value="{{name}}" placeholder="{{localize "TIMELINE_NOTES.CalendarSettings.MonthName"}}">
           <input type="number" name="monthDays" value="{{days}}" min="1" title="{{localize "TIMELINE_NOTES.CalendarSettings.MonthDays"}}">
+          {{#if hasLeapYear}}
+            <input type="number" name="monthLeapDays" value="{{leapDays}}" min="1" title="{{localize "TIMELINE_NOTES.CalendarSettings.MonthLeapDays"}}">
+          {{/if}}
           <button type="button" data-action="move-month-up" data-index="{{@index}}" title="{{localize "TIMELINE_NOTES.CalendarSettings.MoveUp"}}"><i class="fa-solid fa-arrow-up"></i></button>
           <button type="button" data-action="move-month-down" data-index="{{@index}}" title="{{localize "TIMELINE_NOTES.CalendarSettings.MoveDown"}}"><i class="fa-solid fa-arrow-down"></i></button>
           <button type="button" data-action="delete-month" data-index="{{@index}}" title="{{localize "TIMELINE_NOTES.CalendarSettings.DeleteMonth"}}"><i class="fa-solid fa-trash"></i></button>

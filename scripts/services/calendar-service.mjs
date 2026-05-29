@@ -123,9 +123,12 @@ export class CalendarService {
   }
 
   // month is 1-based (module convention). Calendar months.values is 0-based.
+  // Names may be i18n keys (Foundry's Gregorian uses "GREGORIAN.MONTH.January");
+  // localize() returns plain custom names unchanged.
   static getMonthLabel(month) {
     const config = this.getMonthConfigs()[Number(month) - 1];
-    return config?.name ?? config?.abbreviation ?? String(month);
+    const name = config?.name ?? config?.abbreviation;
+    return name ? game.i18n.localize(name) : String(month);
   }
 
   static getDaysInMonth(month) {
