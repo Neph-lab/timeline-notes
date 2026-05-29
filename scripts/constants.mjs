@@ -9,7 +9,8 @@ export const SETTINGS = {
   CAMPAIGN_CURRENT_DATE: "campaignCurrentDate",
   CAMPAIGN_CURRENT_TIME: "campaignCurrentTime",
   DEVELOPMENT_NOTES: "developmentNotes",
-  TAGS: "tags"
+  TAGS: "tags",
+  WORLD_CALENDAR: "worldCalendar"
 };
 
 export const DEFAULT_TAGS = [
@@ -28,12 +29,11 @@ export const VISIBILITY = {
 
 export const DATE_PARTS = {
   year: 0,
-  month: 1,
-  day: 1
+  month: null,
+  day: null
 };
 
 export const TIME_PARTS = {
-  hour: 0,
-  minute: 0,
-  second: 0
+  hour: null,
+  minute: null
 };

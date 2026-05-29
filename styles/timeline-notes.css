@@ -328,12 +328,15 @@
 
 .timeline-note-window__date-range {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 0.5rem;
 }
 
-.timeline-note-window__dates {
-  grid-template-columns: repeat(2, minmax(150px, 1fr));
+.timeline-note-window__date-fields {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
 }
 
 .timeline-note-window legend,
@@ -438,11 +441,96 @@
   margin-left: auto;
 }
 
+/* Calendar settings editor */
+.timeline-notes-calendar-settings__root {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+.timeline-notes-calendar-settings__intro {
+  font-size: 0.85rem;
+  margin: 0;
+  opacity: 0.8;
+}
+
+.timeline-notes-calendar-settings__name {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.timeline-notes-calendar-settings__units {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  border: 1px solid var(--color-border, #555);
+  border-radius: 4px;
+  padding: 0.5rem;
+}
+
+.timeline-notes-calendar-settings__units label {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.timeline-notes-calendar-settings__months,
+.timeline-notes-calendar-settings__weekdays {
+  border: 1px solid var(--color-border, #555);
+  border-radius: 4px;
+  padding: 0.5rem;
+}
+
+.timeline-notes-calendar-settings__month-list,
+.timeline-notes-calendar-settings__weekday-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.timeline-notes-calendar-settings__month-row {
+  align-items: center;
+  display: grid;
+  grid-template-columns: 1.5rem 1fr 4.5rem auto auto auto;
+  gap: 0.35rem;
+}
+
+.timeline-notes-calendar-settings__ordinal {
+  font-size: 0.8rem;
+  opacity: 0.6;
+  text-align: center;
+}
+
+.timeline-notes-calendar-settings__weekday-row {
+  align-items: center;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.35rem;
+}
+
+.timeline-notes-calendar-settings__footer {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+
+.timeline-notes-calendar-settings__save {
+  margin-left: auto;
+}
+
 .timeline-notes-dialog-grid {
   display: grid;
   gap: 0.75rem;
 }
 
+.timeline-notes-dialog-datetime {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+  gap: 0.35rem;
+}
+
+.timeline-notes-dialog-datetime label,
 .timeline-notes-dialog-grid label {
   display: grid;
   gap: 0.25rem;

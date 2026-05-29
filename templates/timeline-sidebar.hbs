@@ -43,9 +43,47 @@
       {{#each groups}}
         <section class="timeline-notes-year">
           <h2>{{year}}</h2>
+
+          {{! Notes with no month — listed directly under the year }}
+          {{#each undatedNotes}}
+            <article class="timeline-notes-card" data-action="open-note" data-note-id="{{id}}" data-entry-type="{{entryType}}">
+              <div class="timeline-notes-card__authorline{{#unless canEdit}} timeline-notes-card__authorline--split{{/unless}}" style="--author-color:{{authorBar.color}}"></div>
+              <div class="timeline-notes-card__content">
+                <header>
+                  <time>{{dateTime}}</time>
+                  {{#if entryTypeLabel}}<span class="timeline-notes-card__marker timeline-notes-card__marker--{{entryType}}">{{entryTypeLabel}}</span>{{/if}}
+                  <span class="timeline-notes-card__title">{{name}}</span>
+                </header>
+                <p class="timeline-notes-card__preview">{{preview}}</p>
+              </div>
+              <div class="timeline-notes-card__tagstack">
+                {{#each resolvedTags}}<span class="timeline-notes-card__tagline" style="background:{{color}}" title="{{name}}"></span>{{/each}}
+              </div>
+            </article>
+          {{/each}}
+
           {{#each months}}
             <section class="timeline-notes-month">
               {{#if ../showMonthHeaders}}<h3>{{label}}</h3>{{/if}}
+
+              {{! Notes with a month but no day — listed directly under the month }}
+              {{#each undatedNotes}}
+                <article class="timeline-notes-card" data-action="open-note" data-note-id="{{id}}" data-entry-type="{{entryType}}">
+                  <div class="timeline-notes-card__authorline{{#unless canEdit}} timeline-notes-card__authorline--split{{/unless}}" style="--author-color:{{authorBar.color}}"></div>
+                  <div class="timeline-notes-card__content">
+                    <header>
+                      <time>{{dateTime}}</time>
+                      {{#if entryTypeLabel}}<span class="timeline-notes-card__marker timeline-notes-card__marker--{{entryType}}">{{entryTypeLabel}}</span>{{/if}}
+                      <span class="timeline-notes-card__title">{{name}}</span>
+                    </header>
+                    <p class="timeline-notes-card__preview">{{preview}}</p>
+                  </div>
+                  <div class="timeline-notes-card__tagstack">
+                    {{#each resolvedTags}}<span class="timeline-notes-card__tagline" style="background:{{color}}" title="{{name}}"></span>{{/each}}
+                  </div>
+                </article>
+              {{/each}}
+
               {{#each days}}
                 <section class="timeline-notes-day">
                   {{#if ../showDayHeaders}}<h4>{{day}}</h4>{{/if}}
@@ -55,17 +93,13 @@
                       <div class="timeline-notes-card__content">
                         <header>
                           <time>{{dateTime}}</time>
-                          {{#if entryTypeLabel}}
-                            <span class="timeline-notes-card__marker timeline-notes-card__marker--{{entryType}}">{{entryTypeLabel}}</span>
-                          {{/if}}
+                          {{#if entryTypeLabel}}<span class="timeline-notes-card__marker timeline-notes-card__marker--{{entryType}}">{{entryTypeLabel}}</span>{{/if}}
                           <span class="timeline-notes-card__title">{{name}}</span>
                         </header>
                         <p class="timeline-notes-card__preview">{{preview}}</p>
                       </div>
                       <div class="timeline-notes-card__tagstack">
-                        {{#each resolvedTags}}
-                          <span class="timeline-notes-card__tagline" style="background:{{color}}" title="{{name}}"></span>
-                        {{/each}}
+                        {{#each resolvedTags}}<span class="timeline-notes-card__tagline" style="background:{{color}}" title="{{name}}"></span>{{/each}}
                       </div>
                     </article>
                   {{/each}}

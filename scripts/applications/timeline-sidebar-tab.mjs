@@ -25,8 +25,24 @@ function getPreview(content) {
 }
 
 function getMonthLabel(month) {
-  const date = new Date(Date.UTC(2000, Number(month) - 1, 1));
-  return date.toLocaleString(game.i18n.lang, { month: "long", timeZone: "UTC" });
+  return CalendarService.getMonthLabel(month);
+}
+
+function parseOptionalPositiveInt(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const n = parseInt(String(value), 10);
+  return Number.isInteger(n) && n >= 1 ? n : null;
+}
+
+function parseOptionalNonNegativeInt(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const n = parseInt(String(value), 10);
+  return Number.isInteger(n) && n >= 0 ? n : null;
+}
+
+function parseRequiredInt(value, fallback = 0) {
+  const n = parseInt(String(value ?? ""), 10);
+  return Number.isInteger(n) ? n : fallback;
 }
 
 function prepareTimelineEntry(note, type) {
@@ -59,76 +75,119 @@ function prepareTimelineEntries(notes) {
     const entries = [prepareTimelineEntry(note, "start")];
     if (note.hasEnd) entries.push(prepareTimelineEntry(note, "end"));
     return entries;
-  }).filter((entry) => entry.entryDate && entry.entryTime);
+  }).filter((entry) => entry.entryDate);
 }
 
-function groupNotes(notes) {
+function groupNotes(entries) {
   const years = [];
   let currentYear = null;
   let currentMonth = null;
   let currentDay = null;
 
-  for (const note of notes) {
-    const year = note.entryDate.year;
-    const month = note.entryDate.month;
-    const day = note.entryDate.day;
+  for (const entry of entries) {
+    const year = entry.entryDate?.year;
+    const month = entry.entryDate?.month ?? null;
+    const day = entry.entryDate?.day ?? null;
 
     if (!currentYear || currentYear.year !== year) {
-      currentYear = { year, months: [] };
+      currentYear = { year, undatedNotes: [], months: [] };
       years.push(currentYear);
       currentMonth = null;
       currentDay = null;
     }
 
-    if (!currentMonth || currentMonth.month !== month) {
-      currentMonth = { month, label: getMonthLabel(month), days: [] };
-      currentYear.months.push(currentMonth);
+    if (month === null) {
+      currentYear.undatedNotes.push(entry);
+      currentMonth = null;
       currentDay = null;
-    }
+    } else {
+      if (!currentMonth || currentMonth.month !== month) {
+        currentMonth = { month, label: getMonthLabel(month), undatedNotes: [], days: [] };
+        currentYear.months.push(currentMonth);
+        currentDay = null;
+      }
 
-    if (!currentDay || currentDay.day !== day) {
-      currentDay = { day, notes: [] };
-      currentMonth.days.push(currentDay);
+      if (day === null) {
+        currentMonth.undatedNotes.push(entry);
+        currentDay = null;
+      } else {
+        if (!currentDay || currentDay.day !== day) {
+          currentDay = { day, notes: [] };
+          currentMonth.days.push(currentDay);
+        }
+        currentDay.notes.push(entry);
+      }
     }
-
-    currentDay.notes.push(note);
   }
 
   for (const year of years) {
-    const yearTotal = year.months.reduce((sum, mo) => sum + mo.days.reduce((s, d) => s + d.notes.length, 0), 0);
-    year.showMonthHeaders = yearTotal > 1;
+    const yearSlots = (year.undatedNotes.length > 0 ? 1 : 0) + year.months.length;
+    year.showMonthHeaders = yearSlots > 1;
     for (const month of year.months) {
-      const monthTotal = month.days.reduce((sum, d) => sum + d.notes.length, 0);
-      month.showDayHeaders = monthTotal > 1;
+      const monthSlots = (month.undatedNotes.length > 0 ? 1 : 0) + month.days.length;
+      month.showDayHeaders = monthSlots > 1;
     }
   }
 
   return years;
 }
 
-function dateDialogContent(current) {
+function dateTimeDialogContent(current) {
+  const d = current.date;
+  const t = current.time;
+  const year = d?.year ?? "";
+  const month = d?.month != null ? d.month : "";
+  const day = d?.day != null ? d.day : "";
+  const hour = t?.hour != null ? t.hour : "";
+  const minute = t?.minute != null ? t.minute : "";
+
+  const monthCount = CalendarService.getMonthCount();
+  const monthMax = monthCount > 0 ? ` max="${monthCount}"` : "";
+  const dayMax = d?.month != null ? CalendarService.getDaysInMonth(d.month) : CalendarService.getMaxDaysInAnyMonth();
+  const dayMaxAttr = dayMax != null ? ` max="${dayMax}"` : "";
+  const hourMax = CalendarService.getHoursPerDay() - 1;
+  const minuteMax = CalendarService.getMinutesPerHour() - 1;
+
   return `
     <div class="timeline-notes-dialog-grid">
-      <label>
-        <span>${game.i18n.localize("TIMELINE_NOTES.Field.Date")}</span>
-        <input type="date" name="date" value="${CalendarService.formatDate(current.date)}">
-      </label>
-      <label>
-        <span>${game.i18n.localize("TIMELINE_NOTES.Field.Time")}</span>
-        <input type="time" name="time" step="1" value="${CalendarService.formatTime(current.time)}">
-      </label>
+      <div class="timeline-notes-dialog-datetime">
+        <label>
+          <span>${game.i18n.localize("TIMELINE_NOTES.Field.Year")}</span>
+          <input type="number" name="year" value="${year}">
+        </label>
+        <label>
+          <span>${game.i18n.localize("TIMELINE_NOTES.Field.Month")}</span>
+          <input type="number" name="month" value="${month}" min="1"${monthMax} placeholder="–">
+        </label>
+        <label>
+          <span>${game.i18n.localize("TIMELINE_NOTES.Field.Day")}</span>
+          <input type="number" name="day" value="${day}" min="1"${dayMaxAttr} placeholder="–">
+        </label>
+        <label>
+          <span>${game.i18n.localize("TIMELINE_NOTES.Field.Hour")}</span>
+          <input type="number" name="hour" value="${hour}" min="0" max="${hourMax}" placeholder="–">
+        </label>
+        <label>
+          <span>${game.i18n.localize("TIMELINE_NOTES.Field.Minute")}</span>
+          <input type="number" name="minute" value="${minute}" min="0" max="${minuteMax}" placeholder="–">
+        </label>
+      </div>
     </div>
   `;
 }
 
-function parseDateInput(value) {
-  const [year, month, day] = String(value).split("-").map(Number);
-  return { year, month, day };
-}
-
-function parseTimeInput(value) {
-  const [hour = 0, minute = 0, second = 0] = String(value).split(":").map(Number);
-  return { hour, minute, second };
+function readDialogDateTime(elements) {
+  return {
+    date: {
+      year: parseRequiredInt(elements.year?.value),
+      month: parseOptionalPositiveInt(elements.month?.value),
+      day: parseOptionalPositiveInt(elements.day?.value)
+    },
+    time: {
+      hour: parseOptionalNonNegativeInt(elements.hour?.value),
+      minute: parseOptionalNonNegativeInt(elements.minute?.value)
+    }
+  };
 }
 
 export class TimelineSidebarTab extends HandlebarsApplicationMixin(AbstractSidebarTab) {
@@ -153,6 +212,7 @@ export class TimelineSidebarTab extends HandlebarsApplicationMixin(AbstractSideb
     this.selectedTags = [];
     this.tagFilterOpen = false;
     Hooks.on(TimelineNoteStore.NOTES_CHANGED_HOOK, this.#handleNotesChanged);
+    Hooks.on(`${MODULE_ID}.calendarChanged`, this.#handleNotesChanged);
   }
 
   #handleNotesChanged = () => {
@@ -161,13 +221,13 @@ export class TimelineSidebarTab extends HandlebarsApplicationMixin(AbstractSideb
 
   async _prepareContext(options) {
     const notes = TimelineNoteStore.list({ query: this.query, direction: this.direction, tags: this.selectedTags });
-    const entries = prepareTimelineEntries(notes).sort((left, right) => {
-      const order = CalendarService.compareDateTimes(
+    const entries = prepareTimelineEntries(notes).sort((left, right) =>
+      CalendarService.compareDateTimes(
         { date: left.entryDate, time: left.entryTime },
-        { date: right.entryDate, time: right.entryTime }
-      );
-      return this.direction === "oldest" ? order : -order;
-    });
+        { date: right.entryDate, time: right.entryTime },
+        this.direction
+      )
+    );
     const groups = groupNotes(entries);
     const current = CalendarService.getCurrentDateTime();
     const allTags = TagService.list().map((t) => ({ ...t, selected: this.selectedTags.includes(t.id) }));
@@ -195,16 +255,11 @@ export class TimelineSidebarTab extends HandlebarsApplicationMixin(AbstractSideb
     if (filterPanel) filterPanel.hidden = !this.tagFilterOpen;
 
     this.#activateListeners(this.element);
-
-    console.debug(`${MODULE_ID} | Rendered timeline sidebar`, {
-      groups: context.groups?.length ?? 0,
-      direction: this.direction,
-      query: this.query
-    });
   }
 
   async close(options) {
     Hooks.off(TimelineNoteStore.NOTES_CHANGED_HOOK, this.#handleNotesChanged);
+    Hooks.off(`${MODULE_ID}.calendarChanged`, this.#handleNotesChanged);
     return super.close(options);
   }
 
@@ -245,14 +300,11 @@ export class TimelineSidebarTab extends HandlebarsApplicationMixin(AbstractSideb
       const current = CalendarService.getCurrentDateTime();
       const result = await foundry.applications.api.DialogV2.prompt({
         window: { title: game.i18n.localize("TIMELINE_NOTES.Action.JumpDate") },
-        content: dateDialogContent(current),
+        content: dateTimeDialogContent(current),
         modal: true,
         ok: {
           label: game.i18n.localize("TIMELINE_NOTES.Action.JumpDate"),
-          callback: (event, button) => ({
-            date: parseDateInput(button.form.elements.date.value),
-            time: parseTimeInput(button.form.elements.time.value)
-          })
+          callback: (event, button) => readDialogDateTime(button.form.elements)
         }
       }).catch(() => null);
       if (!result) return;
@@ -275,14 +327,13 @@ export class TimelineSidebarTab extends HandlebarsApplicationMixin(AbstractSideb
       const current = CalendarService.getCurrentDateTime();
       const result = await foundry.applications.api.DialogV2.prompt({
         window: { title: game.i18n.localize("TIMELINE_NOTES.Action.SetCampaignTime") },
-        content: dateDialogContent(current),
+        content: dateTimeDialogContent(current),
         modal: true,
         ok: {
           label: game.i18n.localize("TIMELINE_NOTES.Action.Save"),
           callback: (event, button) => ({
             calendarId: current.calendarId,
-            date: parseDateInput(button.form.elements.date.value),
-            time: parseTimeInput(button.form.elements.time.value)
+            ...readDialogDateTime(button.form.elements)
           })
         }
       }).catch(() => null);
@@ -295,8 +346,7 @@ export class TimelineSidebarTab extends HandlebarsApplicationMixin(AbstractSideb
     root.querySelectorAll("[data-action='open-note']").forEach((button) => {
       button.addEventListener("click", (event) => {
         const noteId = event.currentTarget.dataset.noteId;
-        const app = new TimelineNoteWindow(noteId);
-        app.render({ force: true });
+        new TimelineNoteWindow(noteId).render({ force: true });
       });
     });
   }
@@ -319,7 +369,6 @@ export function registerTimelineSidebarTab() {
       timelineEntry,
       ...tabEntries.slice(journalIndex + 1)
     ];
-
     CONFIG.ui.sidebar.TABS = Object.fromEntries(reorderedEntries);
   }
 

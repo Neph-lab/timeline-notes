@@ -18,26 +18,83 @@ function getProseMirrorContent(form) {
   const data = new FormData(form);
   const proseMirror = form.querySelector("prose-mirror[name='content']");
   const value = proseMirror?.value ?? proseMirror?.editor?.view?.dom?.innerHTML ?? data.get("content");
-
   return String(value ?? "");
 }
 
-function formatDateInput(date) {
-  return CalendarService.formatDate(date);
+// Parse an optional positive integer (month, day): null when blank or < 1.
+function parseOptionalPositiveInt(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const n = parseInt(String(value), 10);
+  return Number.isInteger(n) && n >= 1 ? n : null;
 }
 
-function formatTimeInput(time) {
-  return CalendarService.formatTime(time);
+// Parse an optional non-negative integer (hour, minute): null when blank, 0 valid.
+function parseOptionalNonNegativeInt(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const n = parseInt(String(value), 10);
+  return Number.isInteger(n) && n >= 0 ? n : null;
 }
 
-function parseDateInput(value) {
-  const [year, month, day] = String(value).split("-").map(Number);
-  return { year, month, day };
+// Parse a required integer (year): falls back to 0 when blank/invalid.
+function parseRequiredInt(value, fallback = 0) {
+  const n = parseInt(String(value ?? ""), 10);
+  return Number.isInteger(n) ? n : fallback;
 }
 
-function parseTimeInput(value) {
-  const [hour = 0, minute = 0, second = 0] = String(value).split(":").map(Number);
-  return { hour, minute, second };
+function readDate(data, prefix) {
+  return {
+    year: parseRequiredInt(data.get(`${prefix}Year`)),
+    month: parseOptionalPositiveInt(data.get(`${prefix}Month`)),
+    day: parseOptionalPositiveInt(data.get(`${prefix}Day`))
+  };
+}
+
+function readTime(data, prefix) {
+  return {
+    hour: parseOptionalNonNegativeInt(data.get(`${prefix}Hour`)),
+    minute: parseOptionalNonNegativeInt(data.get(`${prefix}Minute`))
+  };
+}
+
+function dateFields(prefix, date, time, i18n) {
+  const year = date?.year ?? 0;
+  const month = date?.month != null ? date.month : "";
+  const day = date?.day != null ? date.day : "";
+  const hour = time?.hour != null ? time.hour : "";
+  const minute = time?.minute != null ? time.minute : "";
+
+  // Bounds from the active world calendar.
+  const monthCount = CalendarService.getMonthCount();
+  const monthMax = monthCount > 0 ? ` max="${monthCount}"` : "";
+  const dayMax = date?.month != null ? CalendarService.getDaysInMonth(date.month) : CalendarService.getMaxDaysInAnyMonth();
+  const dayMaxAttr = dayMax != null ? ` max="${dayMax}"` : "";
+  const hourMax = CalendarService.getHoursPerDay() - 1;
+  const minuteMax = CalendarService.getMinutesPerHour() - 1;
+
+  return `
+    <div class="timeline-note-window__date-fields">
+      <label>
+        <span>${i18n.year}</span>
+        <input type="number" name="${prefix}Year" value="${escapeHTML(String(year))}">
+      </label>
+      <label>
+        <span>${i18n.month}</span>
+        <input type="number" name="${prefix}Month" value="${escapeHTML(String(month))}" min="1"${monthMax} placeholder="–">
+      </label>
+      <label>
+        <span>${i18n.day}</span>
+        <input type="number" name="${prefix}Day" value="${escapeHTML(String(day))}" min="1"${dayMaxAttr} placeholder="–">
+      </label>
+      <label>
+        <span>${i18n.hour}</span>
+        <input type="number" name="${prefix}Hour" value="${escapeHTML(String(hour))}" min="0" max="${hourMax}" placeholder="–">
+      </label>
+      <label>
+        <span>${i18n.minute}</span>
+        <input type="number" name="${prefix}Minute" value="${escapeHTML(String(minute))}" min="0" max="${minuteMax}" placeholder="–">
+      </label>
+    </div>
+  `;
 }
 
 function visibilityOptions(selected) {
@@ -77,7 +134,7 @@ export class TimelineNoteWindow extends foundry.applications.api.ApplicationV2 {
       title: "TIMELINE_NOTES.Document.TimelineNote"
     },
     position: {
-      width: 520,
+      width: 560,
       height: 500
     }
   };
@@ -118,6 +175,23 @@ export class TimelineNoteWindow extends foundry.applications.api.ApplicationV2 {
 
   async _onRender(context, options) {
     await super._onRender(context, options);
+
+    // Keep each day field's max in step with the chosen month's length.
+    for (const prefix of ["start", "end"]) {
+      const monthInput = this.element.querySelector(`input[name='${prefix}Month']`);
+      const dayInput = this.element.querySelector(`input[name='${prefix}Day']`);
+      if (!monthInput || !dayInput) continue;
+      monthInput.addEventListener("change", () => {
+        const month = parseOptionalPositiveInt(monthInput.value);
+        const dayMax = month != null ? CalendarService.getDaysInMonth(month) : CalendarService.getMaxDaysInAnyMonth();
+        if (dayMax != null) {
+          dayInput.max = dayMax;
+          if (dayInput.value !== "" && Number(dayInput.value) > dayMax) dayInput.value = dayMax;
+        } else {
+          dayInput.removeAttribute("max");
+        }
+      });
+    }
 
     this.element.querySelector("[data-action='toggle-edit']")?.addEventListener("click", () => {
       this.editing = !this.editing;
@@ -179,6 +253,13 @@ export class TimelineNoteWindow extends foundry.applications.api.ApplicationV2 {
     });
 
     const allTags = TagService.list();
+    const i18n = {
+      year: game.i18n.localize("TIMELINE_NOTES.Field.Year"),
+      month: game.i18n.localize("TIMELINE_NOTES.Field.Month"),
+      day: game.i18n.localize("TIMELINE_NOTES.Field.Day"),
+      hour: game.i18n.localize("TIMELINE_NOTES.Field.Hour"),
+      minute: game.i18n.localize("TIMELINE_NOTES.Field.Minute")
+    };
 
     return `
       <form class="timeline-note-window__form">
@@ -189,14 +270,7 @@ export class TimelineNoteWindow extends foundry.applications.api.ApplicationV2 {
         <div class="timeline-note-window__date-range">
           <fieldset class="timeline-note-window__dates">
             <legend>${game.i18n.localize("TIMELINE_NOTES.Field.Start")}</legend>
-            <label>
-              <span>${game.i18n.localize("TIMELINE_NOTES.Field.Date")}</span>
-              <input type="date" name="startDate" value="${escapeHTML(formatDateInput(note.startDate))}">
-            </label>
-            <label>
-              <span>${game.i18n.localize("TIMELINE_NOTES.Field.Time")}</span>
-              <input type="time" name="startTime" step="1" value="${escapeHTML(formatTimeInput(note.startTime))}">
-            </label>
+            ${dateFields("start", note.startDate, note.startTime, i18n)}
           </fieldset>
           <fieldset class="timeline-note-window__dates">
             <legend>${game.i18n.localize("TIMELINE_NOTES.Field.End")}</legend>
@@ -204,14 +278,7 @@ export class TimelineNoteWindow extends foundry.applications.api.ApplicationV2 {
               <input type="checkbox" name="hasEnd" ${note.hasEnd ? "checked" : ""}>
               <span>${game.i18n.localize("TIMELINE_NOTES.Field.HasEnd")}</span>
             </label>
-            <label>
-              <span>${game.i18n.localize("TIMELINE_NOTES.Field.Date")}</span>
-              <input type="date" name="endDate" value="${escapeHTML(formatDateInput(note.endDate ?? note.startDate))}">
-            </label>
-            <label>
-              <span>${game.i18n.localize("TIMELINE_NOTES.Field.Time")}</span>
-              <input type="time" name="endTime" step="1" value="${escapeHTML(formatTimeInput(note.endTime ?? note.startTime))}">
-            </label>
+            ${dateFields("end", note.endDate, note.endTime, i18n)}
           </fieldset>
         </div>
         <div class="timeline-note-window__editor">
@@ -251,11 +318,11 @@ export class TimelineNoteWindow extends foundry.applications.api.ApplicationV2 {
     const data = new FormData(form);
     await TimelineNoteStore.update(this.noteId, {
       name: data.get("name"),
-      startDate: parseDateInput(data.get("startDate")),
-      startTime: parseTimeInput(data.get("startTime")),
+      startDate: readDate(data, "start"),
+      startTime: readTime(data, "start"),
       hasEnd: data.has("hasEnd"),
-      endDate: parseDateInput(data.get("endDate")),
-      endTime: parseTimeInput(data.get("endTime")),
+      endDate: readDate(data, "end"),
+      endTime: readTime(data, "end"),
       content: getProseMirrorContent(form),
       tags: data.getAll("tags"),
       visibility: data.get("visibility")

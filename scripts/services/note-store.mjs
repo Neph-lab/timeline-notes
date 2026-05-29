@@ -27,15 +27,28 @@ function normalizeVisibility(value) {
   return VISIBILITY.PRIVATE;
 }
 
+// Normalize a date/time object via the active calendar: year required, month/day/
+// hour/minute optional and clamped to the calendar's ranges. Legacy 1-based month/day
+// values are preserved (and only clamped down if they exceed the current calendar).
+// Second is discarded by clampTime.
+function normalizeDate(date) {
+  return CalendarService.clampDate(date ?? { year: 0, month: null, day: null });
+}
+
+function normalizeTime(time) {
+  return CalendarService.clampTime(time ?? { hour: null, minute: null });
+}
+
 function normalizeNoteData(data = {}, existing = null) {
   const defaults = CalendarService.getDefaultNoteDateTime();
-  const startDate = data.startDate ?? existing?.startDate ?? defaults.date;
-  const startTime = data.startTime ?? existing?.startTime ?? defaults.time;
-  const endDate = data.endDate ?? existing?.endDate ?? startDate;
-  const endTime = data.endTime ?? existing?.endTime ?? startTime;
-  const hasEnd = Boolean(data.hasEnd ?? existing?.hasEnd ?? false);
   const calendarId = data.calendarId ?? existing?.calendarId ?? defaults.calendarId ?? DEFAULT_CALENDAR_ID;
   const now = Date.now();
+
+  const startDate = normalizeDate(data.startDate ?? existing?.startDate ?? defaults.date);
+  const startTime = normalizeTime(data.startTime ?? existing?.startTime ?? defaults.time);
+  const hasEnd = Boolean(data.hasEnd ?? existing?.hasEnd ?? false);
+  const endDate = normalizeDate(data.endDate ?? existing?.endDate ?? startDate);
+  const endTime = normalizeTime(data.endTime ?? existing?.endTime ?? startTime);
 
   return {
     id: existing?.id ?? createId(),
@@ -56,31 +69,25 @@ function normalizeNoteData(data = {}, existing = null) {
 }
 
 function sortNotes(notes, direction = "future") {
-  const sorted = [...notes].sort((left, right) => {
-    const order = CalendarService.compareDateTimes(
-      { date: left.startDate, time: left.startTime },
-      { date: right.startDate, time: right.startTime }
-    );
-
-    return direction === "oldest" ? order : -order;
-  });
-
-  return sorted;
+  return [...notes].sort((a, b) => CalendarService.compareDateTimes(
+    { date: a.startDate, time: a.startTime },
+    { date: b.startDate, time: b.startTime },
+    direction
+  ));
 }
 
 function normalizeStoredNote(note) {
   if (!note) return note;
   const defaults = CalendarService.getDefaultNoteDateTime();
-  const startDate = note.startDate ?? defaults.date;
-  const startTime = note.startTime ?? defaults.time;
-
+  const startDate = normalizeDate(note.startDate ?? defaults.date);
+  const startTime = normalizeTime(note.startTime);
   return {
     ...note,
     hasEnd: Boolean(note.hasEnd),
-    endDate: note.endDate ?? startDate,
-    endTime: note.endTime ?? startTime,
     startDate,
     startTime,
+    endDate: normalizeDate(note.endDate ?? startDate),
+    endTime: normalizeTime(note.endTime ?? startTime),
     tags: [...new Set(Array.isArray(note.tags) ? note.tags : [])]
   };
 }
@@ -106,14 +113,12 @@ export class TimelineNoteStore {
       if (tags.length > 0 && !note.tags.some((t) => tags.includes(t))) return false;
       return true;
     });
-
     return sortNotes(notes, direction);
   }
 
   static get(id, { user = game.user } = {}) {
     const note = normalizeStoredNote(getStoredNotes().find((candidate) => candidate.id === id));
     if (!TimelineNotePermissions.canView(note, user)) return null;
-
     return note;
   }
 
@@ -121,7 +126,6 @@ export class TimelineNoteStore {
     const note = normalizeNoteData(data);
     const notes = getStoredNotes();
     notes.push(note);
-
     await setStoredNotes(notes);
     notifyNotesChanged("create", note);
     return note;
@@ -132,10 +136,8 @@ export class TimelineNoteStore {
     const index = notes.findIndex((candidate) => candidate.id === id);
     if (index < 0) throw new Error(`Timeline note not found: ${id}`);
     if (!TimelineNotePermissions.canEdit(notes[index], user)) throw new Error("You do not have permission to edit this timeline note.");
-
     const updated = normalizeNoteData(data, notes[index]);
     notes[index] = updated;
-
     await setStoredNotes(notes);
     notifyNotesChanged("update", updated);
     return updated;
@@ -161,7 +163,6 @@ export class TimelineNoteStore {
     const note = notes.find((candidate) => candidate.id === id);
     if (!note) return false;
     if (!TimelineNotePermissions.canDelete(note, user)) throw new Error("You do not have permission to delete this timeline note.");
-
     await setStoredNotes(notes.filter((candidate) => candidate.id !== id));
     notifyNotesChanged("delete", note);
     return true;

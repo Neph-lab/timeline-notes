@@ -1,0 +1,59 @@
+<div class="timeline-notes-calendar-settings__root">
+  <p class="timeline-notes-calendar-settings__intro">{{localize "TIMELINE_NOTES.CalendarSettings.Intro"}}</p>
+
+  <label class="timeline-notes-calendar-settings__name">
+    <span>{{localize "TIMELINE_NOTES.CalendarSettings.Name"}}</span>
+    <input type="text" name="name" value="{{config.name}}">
+  </label>
+
+  <fieldset class="timeline-notes-calendar-settings__units">
+    <legend>{{localize "TIMELINE_NOTES.CalendarSettings.TimeUnits"}}</legend>
+    <label>
+      <span>{{localize "TIMELINE_NOTES.CalendarSettings.HoursPerDay"}}</span>
+      <input type="number" name="hoursPerDay" value="{{config.hoursPerDay}}" min="1">
+    </label>
+    <label>
+      <span>{{localize "TIMELINE_NOTES.CalendarSettings.MinutesPerHour"}}</span>
+      <input type="number" name="minutesPerHour" value="{{config.minutesPerHour}}" min="1">
+    </label>
+    <label>
+      <span>{{localize "TIMELINE_NOTES.CalendarSettings.SecondsPerMinute"}}</span>
+      <input type="number" name="secondsPerMinute" value="{{config.secondsPerMinute}}" min="1">
+    </label>
+  </fieldset>
+
+  <fieldset class="timeline-notes-calendar-settings__months">
+    <legend>{{localize "TIMELINE_NOTES.CalendarSettings.Months"}}</legend>
+    <div class="timeline-notes-calendar-settings__month-list">
+      {{#each config.months}}
+        <div class="timeline-notes-calendar-settings__month-row" data-month-row data-index="{{@index}}">
+          <span class="timeline-notes-calendar-settings__ordinal">{{ordinal}}</span>
+          <input type="text" name="monthName" value="{{name}}" placeholder="{{localize "TIMELINE_NOTES.CalendarSettings.MonthName"}}">
+          <input type="number" name="monthDays" value="{{days}}" min="1" title="{{localize "TIMELINE_NOTES.CalendarSettings.MonthDays"}}">
+          <button type="button" data-action="move-month-up" data-index="{{@index}}" title="{{localize "TIMELINE_NOTES.CalendarSettings.MoveUp"}}"><i class="fa-solid fa-arrow-up"></i></button>
+          <button type="button" data-action="move-month-down" data-index="{{@index}}" title="{{localize "TIMELINE_NOTES.CalendarSettings.MoveDown"}}"><i class="fa-solid fa-arrow-down"></i></button>
+          <button type="button" data-action="delete-month" data-index="{{@index}}" title="{{localize "TIMELINE_NOTES.CalendarSettings.DeleteMonth"}}"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      {{/each}}
+    </div>
+    <button type="button" data-action="add-month"><i class="fa-solid fa-plus"></i> {{localize "TIMELINE_NOTES.CalendarSettings.AddMonth"}}</button>
+  </fieldset>
+
+  <fieldset class="timeline-notes-calendar-settings__weekdays">
+    <legend>{{localize "TIMELINE_NOTES.CalendarSettings.Weekdays"}}</legend>
+    <div class="timeline-notes-calendar-settings__weekday-list">
+      {{#each config.weekdays}}
+        <div class="timeline-notes-calendar-settings__weekday-row" data-weekday-row data-index="{{@index}}">
+          <input type="text" name="weekdayName" value="{{this}}" placeholder="{{localize "TIMELINE_NOTES.CalendarSettings.WeekdayName"}}">
+          <button type="button" data-action="delete-weekday" data-index="{{@index}}" title="{{localize "TIMELINE_NOTES.CalendarSettings.DeleteWeekday"}}"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      {{/each}}
+    </div>
+    <button type="button" data-action="add-weekday"><i class="fa-solid fa-plus"></i> {{localize "TIMELINE_NOTES.CalendarSettings.AddWeekday"}}</button>
+  </fieldset>
+
+  <footer class="timeline-notes-calendar-settings__footer">
+    <button type="button" data-action="reset-gregorian"><i class="fa-solid fa-rotate-left"></i> {{localize "TIMELINE_NOTES.CalendarSettings.Reset"}}</button>
+    <button type="button" data-action="save-calendar" class="timeline-notes-calendar-settings__save"><i class="fa-solid fa-floppy-disk"></i> {{localize "TIMELINE_NOTES.CalendarSettings.Save"}}</button>
+  </footer>
+</div>

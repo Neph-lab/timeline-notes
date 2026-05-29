@@ -6,12 +6,26 @@ import { TagService } from "./services/tag-service.mjs";
 import { registerTimelineSidebarTab, TimelineSidebarTab } from "./applications/timeline-sidebar-tab.mjs";
 import { TimelineNoteWindow } from "./applications/timeline-note-window.mjs";
 import { TagSettingsApp } from "./applications/tag-settings.mjs";
+import { CalendarSettingsApp } from "./applications/calendar-settings.mjs";
 
 Hooks.once("init", () => {
   console.info(`${MODULE_ID} | Initializing for Foundry VTT V14`);
   CalendarService.registerSettings();
   TimelineNoteStore.registerSettings();
   TagService.registerSettings();
+
+  // Apply the GM-configured world calendar (if any) before game.time builds it.
+  CalendarService.applyWorldCalendar();
+
+  game.settings.registerMenu(MODULE_ID, "calendarManager", {
+    name: "TIMELINE_NOTES.Settings.Calendar.Name",
+    label: "TIMELINE_NOTES.Settings.Calendar.Label",
+    hint: "TIMELINE_NOTES.Settings.Calendar.Hint",
+    icon: "fa-solid fa-calendar-days",
+    type: CalendarSettingsApp,
+    restricted: true
+  });
+
   game.settings.registerMenu(MODULE_ID, "tagManager", {
     name: "TIMELINE_NOTES.Settings.Tags.Name",
     label: "TIMELINE_NOTES.Settings.Tags.Label",
@@ -20,6 +34,7 @@ Hooks.once("init", () => {
     type: TagSettingsApp,
     restricted: true
   });
+
   registerTimelineSidebarTab();
 });
 
@@ -27,6 +42,7 @@ Hooks.once("ready", () => {
   globalThis.timelineNotes = {
     ...(globalThis.timelineNotes ?? {}),
     CalendarService,
+    CalendarSettingsApp,
     TagService,
     TagSettingsApp,
     TimelineNotePermissions,
