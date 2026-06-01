@@ -169,37 +169,24 @@ function performOperation(type, payload, user) {
 
 // --- Socket relay (non-GM clients) -------------------------------------------
 
-function logRelay(...args) {
-  console.log(`${MODULE_ID} | relay |`, ...args);
-}
-
 // GM users that are currently connected. A relayed write is fulfilled by any of
 // these, so it works even if another GM account shows a stale `active` flag.
 function activeGMs() {
   return game.users.filter((u) => u.isGM && u.active);
 }
 
-function describeGMs() {
-  const gms = game.users.filter((u) => u.isGM).map((u) => `${u.name}(${u.id}) active=${u.active}`);
-  return gms.length ? gms.join(", ") : "none";
-}
-
 function relayOperation(type, payload) {
   return new Promise((resolve, reject) => {
-    const gms = activeGMs();
-    if (!gms.length) {
-      logRelay(`No active GM — cannot relay "${type}". GM users: ${describeGMs()}.`);
+    if (!activeGMs().length) {
       reject(new Error(game.i18n.localize("TIMELINE_NOTES.Error.NoActiveGM")));
       return;
     }
     const requestId = createId();
     const timeout = setTimeout(() => {
       pendingRequests.delete(requestId);
-      logRelay(`Request ${requestId} ("${type}") timed out after ${REQUEST_TIMEOUT_MS}ms with no GM response. GM users: ${describeGMs()}.`);
       reject(new Error(game.i18n.localize("TIMELINE_NOTES.Error.RequestTimeout")));
     }, REQUEST_TIMEOUT_MS);
     pendingRequests.set(requestId, { resolve, reject, timeout });
-    logRelay(`Sending "${type}" request ${requestId}. Active GMs: ${gms.map((u) => u.name).join(", ")}. GM users: ${describeGMs()}.`);
     game.socket.emit(SOCKET_NAME, { event: REQUEST_EVENT, requestId, userId: game.user.id, type, payload });
   });
 }
@@ -208,7 +195,6 @@ async function handleRelayRequest(message) {
   // Any connected GM fulfils the request; commitCreate is idempotent so two GMs
   // acting on it can't duplicate the note.
   if (!game.user.isGM) return;
-  logRelay(`Handling "${message.type}" request ${message.requestId} on behalf of ${game.users.get(message.userId)?.name ?? message.userId}.`);
   const user = game.users.get(message.userId) ?? game.user;
   const response = { event: RESPONSE_EVENT, requestId: message.requestId, ok: true };
   try {
@@ -216,9 +202,8 @@ async function handleRelayRequest(message) {
   } catch (error) {
     response.ok = false;
     response.error = error.message;
-    logRelay(`Request ${message.requestId} failed:`, error);
+    console.error(`${MODULE_ID} | Relayed "${message.type}" request failed`, error);
   }
-  logRelay(`Responding to request ${message.requestId} (ok=${response.ok}).`);
   game.socket.emit(SOCKET_NAME, response);
 }
 
@@ -227,7 +212,6 @@ function handleRelayResponse(message) {
   if (!pending) return;
   clearTimeout(pending.timeout);
   pendingRequests.delete(message.requestId);
-  logRelay(`Received response for request ${message.requestId} (ok=${message.ok}).`);
   if (message.ok) pending.resolve(message.result);
   else pending.reject(new Error(message.error));
 }
@@ -259,7 +243,6 @@ export class TimelineNoteStore {
     Hooks.on("updateSetting", (setting) => {
       if (setting?.key === `${MODULE_ID}.${SETTINGS.DEVELOPMENT_NOTES}`) notifyNotesChanged("sync");
     });
-    logRelay(`Listening on "${SOCKET_NAME}". This client is ${game.user.name} (GM: ${game.user.isGM}). GM users: ${describeGMs()}.`);
   }
 
   static list({ user = game.user, query = "", direction = "future", tags = [] } = {}) {
