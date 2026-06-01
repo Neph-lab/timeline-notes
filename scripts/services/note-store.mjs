@@ -4,6 +4,17 @@ import { TimelineNotePermissions } from "./permissions.mjs";
 
 const NOTES_CHANGED_HOOK = `${MODULE_ID}.notesChanged`;
 
+// Notes are persisted in a world-scoped setting, which Foundry only lets a GM
+// write. To let players create/edit/delete their own notes, non-GM clients relay
+// the operation to the active GM over this socket; the GM performs the write and
+// the synced setting refreshes every client (see registerSocket / updateSetting).
+const SOCKET_NAME = `module.${MODULE_ID}`;
+const REQUEST_EVENT = "noteRequest";
+const RESPONSE_EVENT = "noteResponse";
+const REQUEST_TIMEOUT_MS = 10000;
+
+const pendingRequests = new Map();
+
 function getStoredNotes() {
   const value = game.settings.get(MODULE_ID, SETTINGS.DEVELOPMENT_NOTES);
   return Array.isArray(value) ? foundry.utils.deepClone(value) : [];
@@ -92,6 +103,118 @@ function normalizeStoredNote(note) {
   };
 }
 
+// --- GM-side write operations -------------------------------------------------
+// These perform the authoritative read-modify-write and must run on a GM client
+// (directly when the acting user is a GM, or via the socket relay otherwise).
+
+async function commitCreate(note) {
+  const notes = getStoredNotes();
+  notes.push(note);
+  await setStoredNotes(notes);
+  notifyNotesChanged("create", note);
+  return note;
+}
+
+async function commitUpdate(id, data, user) {
+  const notes = getStoredNotes();
+  const index = notes.findIndex((candidate) => candidate.id === id);
+  if (index < 0) throw new Error(`Timeline note not found: ${id}`);
+  if (!TimelineNotePermissions.canEdit(notes[index], user)) throw new Error("You do not have permission to edit this timeline note.");
+  const updated = normalizeNoteData(data, notes[index]);
+  notes[index] = updated;
+  await setStoredNotes(notes);
+  notifyNotesChanged("update", updated);
+  return updated;
+}
+
+async function commitDelete(id, user) {
+  const notes = getStoredNotes();
+  const note = notes.find((candidate) => candidate.id === id);
+  if (!note) return false;
+  if (!TimelineNotePermissions.canDelete(note, user)) throw new Error("You do not have permission to delete this timeline note.");
+  await setStoredNotes(notes.filter((candidate) => candidate.id !== id));
+  notifyNotesChanged("delete", note);
+  return true;
+}
+
+async function commitRemoveTagFromAll(tagId) {
+  const notes = getStoredNotes();
+  let changed = false;
+  for (const note of notes) {
+    if (Array.isArray(note.tags) && note.tags.includes(tagId)) {
+      note.tags = note.tags.filter((t) => t !== tagId);
+      changed = true;
+    }
+  }
+  if (changed) {
+    await setStoredNotes(notes);
+    notifyNotesChanged("update");
+  }
+}
+
+// Run an operation on the originating client's behalf. The requesting user is
+// resolved so the GM enforces the same permission checks the player would have.
+function performOperation(type, payload, user) {
+  switch (type) {
+    case "create": return commitCreate(payload.note);
+    case "update": return commitUpdate(payload.id, payload.data, user);
+    case "delete": return commitDelete(payload.id, user);
+    case "removeTagFromAll": return commitRemoveTagFromAll(payload.tagId);
+    default: throw new Error(`Unknown timeline note operation: ${type}`);
+  }
+}
+
+// --- Socket relay (non-GM clients) -------------------------------------------
+
+// The single GM responsible for fulfilling relayed write requests.
+function isResponsibleGM() {
+  return game.users.activeGM?.id === game.user.id;
+}
+
+function relayOperation(type, payload) {
+  return new Promise((resolve, reject) => {
+    if (!game.users.activeGM) {
+      reject(new Error(game.i18n.localize("TIMELINE_NOTES.Error.NoActiveGM")));
+      return;
+    }
+    const requestId = createId();
+    const timeout = setTimeout(() => {
+      pendingRequests.delete(requestId);
+      reject(new Error(game.i18n.localize("TIMELINE_NOTES.Error.RequestTimeout")));
+    }, REQUEST_TIMEOUT_MS);
+    pendingRequests.set(requestId, { resolve, reject, timeout });
+    game.socket.emit(SOCKET_NAME, { event: REQUEST_EVENT, requestId, userId: game.user.id, type, payload });
+  });
+}
+
+async function handleRelayRequest(message) {
+  if (!isResponsibleGM()) return;
+  const user = game.users.get(message.userId) ?? game.user;
+  const response = { event: RESPONSE_EVENT, requestId: message.requestId, ok: true };
+  try {
+    response.result = await performOperation(message.type, message.payload, user);
+  } catch (error) {
+    response.ok = false;
+    response.error = error.message;
+  }
+  game.socket.emit(SOCKET_NAME, response);
+}
+
+function handleRelayResponse(message) {
+  const pending = pendingRequests.get(message.requestId);
+  if (!pending) return;
+  clearTimeout(pending.timeout);
+  pendingRequests.delete(message.requestId);
+  if (message.ok) pending.resolve(message.result);
+  else pending.reject(new Error(message.error));
+}
+
+function onSocketMessage(message) {
+  if (!message || typeof message !== "object") return;
+  if (message.event === REQUEST_EVENT) handleRelayRequest(message);
+  else if (message.event === RESPONSE_EVENT) handleRelayResponse(message);
+}
+
 export class TimelineNoteStore {
   static registerSettings() {
     game.settings.register(MODULE_ID, SETTINGS.DEVELOPMENT_NOTES, {
@@ -102,6 +225,16 @@ export class TimelineNoteStore {
       restricted: false,
       type: Array,
       default: []
+    });
+  }
+
+  // Wire up the GM relay socket and a cross-client refresh. Call once in `ready`,
+  // after `game.socket` exists.
+  static registerSocket() {
+    game.socket.on(SOCKET_NAME, onSocketMessage);
+    // When the GM's write syncs to other clients, refresh their views too.
+    Hooks.on("updateSetting", (setting) => {
+      if (setting?.key === `${MODULE_ID}.${SETTINGS.DEVELOPMENT_NOTES}`) notifyNotesChanged("sync");
     });
   }
 
@@ -123,49 +256,26 @@ export class TimelineNoteStore {
   }
 
   static async create(data = {}) {
+    // Stamp author/id on the originating client so a relayed create keeps the
+    // requesting player as the author rather than the GM who performs the write.
     const note = normalizeNoteData(data);
-    const notes = getStoredNotes();
-    notes.push(note);
-    await setStoredNotes(notes);
-    notifyNotesChanged("create", note);
-    return note;
+    if (game.user.isGM) return commitCreate(note);
+    return relayOperation("create", { note });
   }
 
   static async update(id, data = {}, { user = game.user } = {}) {
-    const notes = getStoredNotes();
-    const index = notes.findIndex((candidate) => candidate.id === id);
-    if (index < 0) throw new Error(`Timeline note not found: ${id}`);
-    if (!TimelineNotePermissions.canEdit(notes[index], user)) throw new Error("You do not have permission to edit this timeline note.");
-    const updated = normalizeNoteData(data, notes[index]);
-    notes[index] = updated;
-    await setStoredNotes(notes);
-    notifyNotesChanged("update", updated);
-    return updated;
+    if (game.user.isGM) return commitUpdate(id, data, user);
+    return relayOperation("update", { id, data });
   }
 
   static async removeTagFromAll(tagId) {
-    const notes = getStoredNotes();
-    let changed = false;
-    for (const note of notes) {
-      if (Array.isArray(note.tags) && note.tags.includes(tagId)) {
-        note.tags = note.tags.filter((t) => t !== tagId);
-        changed = true;
-      }
-    }
-    if (changed) {
-      await setStoredNotes(notes);
-      notifyNotesChanged("update");
-    }
+    if (game.user.isGM) return commitRemoveTagFromAll(tagId);
+    return relayOperation("removeTagFromAll", { tagId });
   }
 
   static async delete(id, { user = game.user } = {}) {
-    const notes = getStoredNotes();
-    const note = notes.find((candidate) => candidate.id === id);
-    if (!note) return false;
-    if (!TimelineNotePermissions.canDelete(note, user)) throw new Error("You do not have permission to delete this timeline note.");
-    await setStoredNotes(notes.filter((candidate) => candidate.id !== id));
-    notifyNotesChanged("delete", note);
-    return true;
+    if (game.user.isGM) return commitDelete(id, user);
+    return relayOperation("delete", { id });
   }
 }
 

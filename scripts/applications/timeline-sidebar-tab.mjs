@@ -288,10 +288,16 @@ export class TimelineSidebarTab extends HandlebarsApplicationMixin(AbstractSideb
     });
 
     root.querySelector("[data-action='create-note']")?.addEventListener("click", async () => {
-      const note = await TimelineNoteStore.create({
-        name: game.i18n.localize("TIMELINE_NOTES.DefaultNoteName"),
-        content: "<p></p>"
-      });
+      let note;
+      try {
+        note = await TimelineNoteStore.create({
+          name: game.i18n.localize("TIMELINE_NOTES.DefaultNoteName"),
+          content: "<p></p>"
+        });
+      } catch (error) {
+        ui.notifications.error(error.message);
+        return;
+      }
       await this.render({ force: true });
       new TimelineNoteWindow(note.id, { editing: true }).render({ force: true });
     });

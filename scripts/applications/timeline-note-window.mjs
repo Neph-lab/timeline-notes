@@ -146,10 +146,34 @@ export class TimelineNoteWindow extends foundry.applications.api.ApplicationV2 {
     });
     this.noteId = noteId;
     this.editing = options.editing ?? false;
+    Hooks.on(TimelineNoteStore.NOTES_CHANGED_HOOK, this.#handleNotesChanged);
   }
+
+  // True once the note has been found and rendered at least once. Lets us tell a
+  // not-yet-synced note (relayed create still in flight) apart from a deletion.
+  #loaded = false;
+
+  // Re-render when the note changes (e.g. a relayed create/edit syncs in from the
+  // GM); close if a loaded note was deleted out from under us.
+  #handleNotesChanged = () => {
+    if (!this.rendered) return;
+    const note = this.note;
+    if (!note) {
+      if (this.#loaded) this.close();
+      return;
+    }
+    // Don't clobber an in-progress edit once the note is already on screen.
+    if (this.editing && this.#loaded) return;
+    this.render({ force: true });
+  };
 
   get note() {
     return TimelineNoteStore.get(this.noteId);
+  }
+
+  async close(options) {
+    Hooks.off(TimelineNoteStore.NOTES_CHANGED_HOOK, this.#handleNotesChanged);
+    return super.close(options);
   }
 
   async _renderHTML() {
@@ -161,6 +185,7 @@ export class TimelineNoteWindow extends foundry.applications.api.ApplicationV2 {
       return missing;
     }
 
+    this.#loaded = true;
     const editable = TimelineNotePermissions.canEdit(note);
     const content = this.editing && editable ? await this.#renderEditMode(note) : await this.#renderViewMode(note, editable);
     const element = document.createElement("section");
@@ -316,17 +341,22 @@ export class TimelineNoteWindow extends foundry.applications.api.ApplicationV2 {
     if (!form) return;
 
     const data = new FormData(form);
-    await TimelineNoteStore.update(this.noteId, {
-      name: data.get("name"),
-      startDate: readDate(data, "start"),
-      startTime: readTime(data, "start"),
-      hasEnd: data.has("hasEnd"),
-      endDate: readDate(data, "end"),
-      endTime: readTime(data, "end"),
-      content: getProseMirrorContent(form),
-      tags: data.getAll("tags"),
-      visibility: data.get("visibility")
-    });
+    try {
+      await TimelineNoteStore.update(this.noteId, {
+        name: data.get("name"),
+        startDate: readDate(data, "start"),
+        startTime: readTime(data, "start"),
+        hasEnd: data.has("hasEnd"),
+        endDate: readDate(data, "end"),
+        endTime: readTime(data, "end"),
+        content: getProseMirrorContent(form),
+        tags: data.getAll("tags"),
+        visibility: data.get("visibility")
+      });
+    } catch (error) {
+      ui.notifications.error(error.message);
+      return;
+    }
 
     this.editing = false;
     await this.render({ force: true });
@@ -341,7 +371,12 @@ export class TimelineNoteWindow extends foundry.applications.api.ApplicationV2 {
     });
     if (!proceed) return;
 
-    await TimelineNoteStore.delete(this.noteId);
+    try {
+      await TimelineNoteStore.delete(this.noteId);
+    } catch (error) {
+      ui.notifications.error(error.message);
+      return;
+    }
     await this.close();
   }
 }

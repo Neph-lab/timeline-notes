@@ -16,6 +16,8 @@
   "TIMELINE_NOTES.Action.View": "View",
   "TIMELINE_NOTES.DeleteConfirm.Title": "Delete Timeline Note",
   "TIMELINE_NOTES.DeleteConfirm.Content": "Delete this timeline note?",
+  "TIMELINE_NOTES.Error.NoActiveGM": "A Game Master must be online to save timeline notes. Please try again when a GM is connected.",
+  "TIMELINE_NOTES.Error.RequestTimeout": "Saving the timeline note timed out. No Game Master responded — please try again.",
   "TIMELINE_NOTES.Document.TimelineNote": "Timeline Note",
   "TIMELINE_NOTES.Document.TimelineNotes": "Timeline Notes",
   "TIMELINE_NOTES.Entry.End": "End",

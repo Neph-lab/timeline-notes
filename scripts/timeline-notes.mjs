@@ -39,6 +39,8 @@ Hooks.once("init", () => {
 });
 
 Hooks.once("ready", () => {
+  TimelineNoteStore.registerSocket();
+
   globalThis.timelineNotes = {
     ...(globalThis.timelineNotes ?? {}),
     CalendarService,
