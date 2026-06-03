@@ -224,7 +224,7 @@
   font-size: 0.85rem;
   opacity: 0.75;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 5;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
