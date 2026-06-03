@@ -11,17 +11,27 @@ const { HandlebarsApplicationMixin } = foundry.applications.api;
 const SIDEBAR_TAB_ID = "timelineNotes";
 const JOURNAL_TAB_ID = "journal";
 
-function stripHTML(value) {
-  const element = document.createElement("div");
-  element.innerHTML = value ?? "";
-  return element.textContent?.trim() ?? "";
+function getTextEditor() {
+  return foundry.applications.ux?.TextEditor?.implementation ?? globalThis.TextEditor;
 }
 
-function getPreview(content) {
-  const text = stripHTML(content);
-  const firstParagraph = text.split(/\n\s*\n/)[0] || text;
-  const preview = firstParagraph.slice(0, 500);
-  return preview.length < firstParagraph.length ? `${preview}...` : preview;
+// Pull the first non-empty block of the note as the preview source so cards stay
+// short, but keep its inner HTML (links, @UUID references) intact for enrichment.
+function getPreviewSource(content) {
+  const element = document.createElement("div");
+  element.innerHTML = content ?? "";
+  const firstBlock = [...element.children].find((el) => (el.textContent ?? "").trim().length > 0);
+  return (firstBlock ?? element).innerHTML.trim();
+}
+
+async function enrichPreview(content) {
+  const source = getPreviewSource(content);
+  if (!source) return "";
+  return getTextEditor().enrichHTML(source, {
+    async: true,
+    relativeTo: game.world,
+    secrets: game.user?.isGM
+  });
 }
 
 function getMonthLabel(month) {
@@ -45,7 +55,7 @@ function parseRequiredInt(value, fallback = 0) {
   return Number.isInteger(n) ? n : fallback;
 }
 
-function prepareTimelineEntry(note, type) {
+async function prepareTimelineEntry(note, type) {
   const isEnd = type === "end";
   const date = isEnd ? note.endDate : note.startDate;
   const time = isEnd ? note.endTime : note.startTime;
@@ -63,19 +73,19 @@ function prepareTimelineEntry(note, type) {
       : note.hasEnd ? game.i18n.localize("TIMELINE_NOTES.Entry.Start")
       : "",
     key: `${note.id}-${type}`,
-    preview: getPreview(note.content) || game.i18n.localize("TIMELINE_NOTES.Note.EmptyContent"),
+    preview: (await enrichPreview(note.content)) || game.i18n.localize("TIMELINE_NOTES.Note.EmptyContent"),
     authorBar,
     canEdit,
     resolvedTags
   };
 }
 
-function prepareTimelineEntries(notes) {
-  return notes.flatMap((note) => {
-    const entries = [prepareTimelineEntry(note, "start")];
-    if (note.hasEnd) entries.push(prepareTimelineEntry(note, "end"));
-    return entries;
-  }).filter((entry) => entry.entryDate);
+async function prepareTimelineEntries(notes) {
+  const entries = await Promise.all(notes.flatMap((note) => {
+    const types = note.hasEnd ? ["start", "end"] : ["start"];
+    return types.map((type) => prepareTimelineEntry(note, type));
+  }));
+  return entries.filter((entry) => entry.entryDate);
 }
 
 function groupNotes(entries) {
@@ -221,7 +231,7 @@ export class TimelineSidebarTab extends HandlebarsApplicationMixin(AbstractSideb
 
   async _prepareContext(options) {
     const notes = TimelineNoteStore.list({ query: this.query, direction: this.direction, tags: this.selectedTags });
-    const entries = prepareTimelineEntries(notes).sort((left, right) =>
+    const entries = (await prepareTimelineEntries(notes)).sort((left, right) =>
       CalendarService.compareDateTimes(
         { date: left.entryDate, time: left.entryTime },
         { date: right.entryDate, time: right.entryTime },
@@ -351,6 +361,8 @@ export class TimelineSidebarTab extends HandlebarsApplicationMixin(AbstractSideb
 
     root.querySelectorAll("[data-action='open-note']").forEach((button) => {
       button.addEventListener("click", (event) => {
+        // Let enriched content links (document references, etc.) handle their own clicks.
+        if (event.target.closest("a")) return;
         const noteId = event.currentTarget.dataset.noteId;
         new TimelineNoteWindow(noteId).render({ force: true });
       });

@@ -54,7 +54,7 @@
                   {{#if entryTypeLabel}}<span class="timeline-notes-card__marker timeline-notes-card__marker--{{entryType}}">{{entryTypeLabel}}</span>{{/if}}
                   <span class="timeline-notes-card__title">{{name}}</span>
                 </header>
-                <p class="timeline-notes-card__preview">{{preview}}</p>
+                <div class="timeline-notes-card__preview">{{{preview}}}</div>
               </div>
               <div class="timeline-notes-card__tagstack">
                 {{#each resolvedTags}}<span class="timeline-notes-card__tagline" style="background:{{color}}" title="{{name}}"></span>{{/each}}
@@ -76,7 +76,7 @@
                       {{#if entryTypeLabel}}<span class="timeline-notes-card__marker timeline-notes-card__marker--{{entryType}}">{{entryTypeLabel}}</span>{{/if}}
                       <span class="timeline-notes-card__title">{{name}}</span>
                     </header>
-                    <p class="timeline-notes-card__preview">{{preview}}</p>
+                    <div class="timeline-notes-card__preview">{{{preview}}}</div>
                   </div>
                   <div class="timeline-notes-card__tagstack">
                     {{#each resolvedTags}}<span class="timeline-notes-card__tagline" style="background:{{color}}" title="{{name}}"></span>{{/each}}
@@ -96,7 +96,7 @@
                           {{#if entryTypeLabel}}<span class="timeline-notes-card__marker timeline-notes-card__marker--{{entryType}}">{{entryTypeLabel}}</span>{{/if}}
                           <span class="timeline-notes-card__title">{{name}}</span>
                         </header>
-                        <p class="timeline-notes-card__preview">{{preview}}</p>
+                        <div class="timeline-notes-card__preview">{{{preview}}}</div>
                       </div>
                       <div class="timeline-notes-card__tagstack">
                         {{#each resolvedTags}}<span class="timeline-notes-card__tagline" style="background:{{color}}" title="{{name}}"></span>{{/each}}
